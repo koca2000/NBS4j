@@ -13,6 +13,7 @@ public class Song {
     private boolean isStereo = false;
     private int songLength = 0;
 
+    private int nonCustomInstrumentsCount = 0;
     private final List<CustomInstrument> customInstruments = new ArrayList<>();
 
     private final TreeSet<Integer> nonEmptyTicks = new TreeSet<>();
@@ -27,7 +28,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of the {@link Song}
      */
-    public Song withCustomInstrument(CustomInstrument customInstrument){
+    public Song addCustomInstrument(CustomInstrument customInstrument){
         throwIfSongFrozen();
 
         customInstruments.add(customInstrument);
@@ -40,8 +41,8 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song withLayer(Layer layer){
-        return withLayer(layers.size(), layer);
+    public Song addLayer(Layer layer){
+        return setLayer(layers.size(), layer);
     }
 
     /**
@@ -52,7 +53,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song withLayer(int index, Layer layer){
+    public Song setLayer(int index, Layer layer){
         throwIfSongFrozen();
 
         if (index < 0)
@@ -61,10 +62,17 @@ public class Song {
         if (index > layers.size())
             throw new IndexOutOfBoundsException("There are still missing layer information for lower indexes.");
 
+        layer.setSong(this);
         if (index == layers.size())
             layers.add(layer);
         else
+        {
+            layers.get(index).removedFromSong();
             layers.set(index, layer);
+        }
+
+        if (layer.getPanning() != Layer.NEUTRAL_PANNING)
+            isStereo = true;
 
         return this;
     }
@@ -76,14 +84,14 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song withLayersCount(int count){
+    public Song setLayersCount(int count){
         throwIfSongFrozen();
 
         if (count < layers.size())
             throw new IllegalArgumentException("Layers can not be removed.");
 
         for (int i = layers.size(); i < count; i++){
-            layers.add(new Layer());
+            layers.add(new Layer().setSong(this));
         }
 
         return this;
@@ -100,7 +108,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song withNote(int tick, int layerIndex, Note note){
+    public Song setNote(int tick, int layerIndex, Note note){
         throwIfSongFrozen();
 
         if (tick < 0)
@@ -111,13 +119,16 @@ public class Song {
 
         Layer layer = layers.get(layerIndex);
         layer.setNote(tick, note);
-        note.setLayer(layer);
 
         nonEmptyTicks.add(tick);
         if (lastTick < tick)
             lastTick = tick;
         if (songLength <= tick)
             songLength = tick + 1;
+
+        if (note.getPanning() != Note.NEUTRAL_PANNING)
+            isStereo = true;
+
         return this;
     }
 
@@ -128,7 +139,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song withLength(int length){
+    public Song setLength(int length){
         throwIfSongFrozen();
 
         if (lastTick >= length)
@@ -139,14 +150,19 @@ public class Song {
 
     /**
      * Specifies whether the song has notes or layers (notes or layers with panning).
-     * @param isStereo true if the song has stereo notes
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song withStereo(boolean isStereo){
+    Song setStereo(){
         throwIfSongFrozen();
 
-        this.isStereo = isStereo;
+        this.isStereo = true;
+        return this;
+    }
+
+    Song increaseNonCustomInstrumentsCountTo(int nonCustomInstrumentsCount) {
+        if (this.nonCustomInstrumentsCount < nonCustomInstrumentsCount)
+            this.nonCustomInstrumentsCount = nonCustomInstrumentsCount;
         return this;
     }
 
@@ -157,7 +173,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song withTempoChange(int firstTick, float tempo){
+    public Song setTempoChange(int firstTick, float tempo){
         throwIfSongFrozen();
 
         tempoChanges.put(firstTick, tempo);
@@ -258,6 +274,10 @@ public class Song {
      */
     public float getTempo(int tick){
         return tempoChanges.floorKey(tick);
+    }
+
+    public int getNonCustomInstrumentsCount() {
+        return nonCustomInstrumentsCount;
     }
 
     /**

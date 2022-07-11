@@ -5,19 +5,25 @@ public class CustomInstrument {
     private String name;
     private String fileName;
     private int pitch;
+    private boolean shouldPressKey = false;
 
-    public CustomInstrument withName(String name){
+    public CustomInstrument setName(String name){
         this.name = name;
         return this;
     }
 
-    public CustomInstrument withFileName(String fileName){
+    public CustomInstrument setFileName(String fileName){
         this.fileName = fileName;
         return this;
     }
 
-    public CustomInstrument withPitch(int pitch){
+    public CustomInstrument setPitch(int pitch){
         this.pitch = pitch;
+        return this;
+    }
+
+    public CustomInstrument setShouldPressKey(boolean shouldPressKey) {
+        this.shouldPressKey = shouldPressKey;
         return this;
     }
 
@@ -31,5 +37,9 @@ public class CustomInstrument {
 
     public int getPitch() {
         return pitch;
+    }
+
+    public boolean shouldPressKey() {
+        return shouldPressKey;
     }
 }

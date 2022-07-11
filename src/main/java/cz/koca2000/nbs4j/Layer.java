@@ -13,9 +13,26 @@ public final class Layer {
     private int panning = 100;
     private boolean isLocked = false;
 
+    private Song song;
     private boolean isFrozen = false;
 
+    Layer setSong(Song song){
+        if (this.song != null)
+            throw new IllegalStateException("Layer was already added to a song.");
+
+        this.song = song;
+        return this;
+    }
+
+    void removedFromSong(){
+        this.song = null;
+    }
+
     void setNote(int tick, Note note){
+        note.setLayer(this);
+        if (notes.containsKey(tick)){
+            notes.get(tick).removedFromLayer();
+        }
         notes.put(tick, note);
     }
 
@@ -34,28 +51,32 @@ public final class Layer {
         isFrozen = true;
     }
 
-    public Layer withLocked(boolean locked){
+    public Layer setLocked(boolean locked){
         throwIfFrozen();
 
         this.isLocked = locked;
         return this;
     }
 
-    public Layer withName(String name){
+    public Layer setName(String name){
         throwIfFrozen();
 
         this.name = name;
         return this;
     }
 
-    public Layer withPanning(int panning){
+    public Layer setPanning(int panning){
         throwIfFrozen();
 
         this.panning = panning;
+
+        if (song != null && panning != NEUTRAL_PANNING)
+            song.setStereo();
+
         return this;
     }
 
-    public Layer withVolume(int volume){
+    public Layer setVolume(int volume){
         throwIfFrozen();
 
         this.volume = volume;
@@ -84,6 +105,10 @@ public final class Layer {
 
     public boolean isFrozen(){
         return isFrozen;
+    }
+
+    public Song getSong() {
+        return song;
     }
 
     private void throwIfFrozen(){

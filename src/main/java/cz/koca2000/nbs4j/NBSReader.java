@@ -17,7 +17,7 @@ class NBSReader {
 
             HeaderData header = readHeader(song, dataInputStream);
 
-            song.withLayersCount(readShort(dataInputStream));
+            song.setLayersCount(readShort(dataInputStream));
 
             readMetadata(song, header, dataInputStream);
 
@@ -68,10 +68,10 @@ class NBSReader {
             data.FirstCustomInstrumentIndex = stream.readByte();
 
             if (data.Version >= 3) // Until nbs 3 there wasn't length specified in the file
-                song.withLength(readShort(stream));
+                song.setLength(readShort(stream));
         }
         else
-            song.withLength(length);
+            song.setLength(length);
 
         return data;
     }
@@ -79,24 +79,24 @@ class NBSReader {
     private static void readMetadata(Song song, HeaderData header, DataInputStream stream) throws IOException {
         SongMetadata metadata = song.getMetadata();
 
-        metadata.withTitle(readString(stream))
-                .withAuthor(readString(stream))
-                .withOriginalAuthor(readString(stream))
-                .withDescription(readString(stream));
-        song.withTempoChange(0,readShort(stream) / 100f);
-        stream.readBoolean(); // auto-save
-        stream.readByte(); // auto-save duration
-        stream.readByte(); // x/4ths, time signature
-        readInt(stream); // minutes spent on project
-        readInt(stream); // left clicks
-        readInt(stream); // right clicks
-        readInt(stream); // blocks added
-        readInt(stream); // blocks removed
-        readString(stream); // .mid/.schematic file name
+        metadata.setTitle(readString(stream))
+                .setAuthor(readString(stream))
+                .setOriginalAuthor(readString(stream))
+                .setDescription(readString(stream));
+        song.setTempoChange(0,readShort(stream) / 100f);
+        metadata.setAutoSave(stream.readBoolean())
+                .setAutoSaveDuration(stream.readByte())
+                .setTimeSignature(stream.readByte())
+                .setMinutesSpent(readInt(stream))
+                .setLeftClicks(readInt(stream))
+                .setRightClicks(readInt(stream))
+                .setNoteBlocksAdded(readInt(stream))
+                .setNoteBlocksRemoved(readInt(stream))
+                .setOriginalMidiFileName(readString(stream));
         if (header.Version >= 4) {
-            stream.readByte(); // loop on/off
-            stream.readByte(); // max loop count
-            readShort(stream); // loop start tick
+            metadata.setLoop(stream.readByte() == 1)
+                    .setLoopMaxCount(stream.readByte())
+                    .setLoopStartTick(readShort(stream));
         }
     }
 
@@ -121,22 +121,18 @@ class NBSReader {
                 Note note = new Note();
                 byte instrument = stream.readByte();
                 if (instrument >= header.FirstCustomInstrumentIndex)
-                    note.withInstrument(instrument - header.FirstCustomInstrumentIndex, true);
+                    note.setInstrument(instrument - header.FirstCustomInstrumentIndex, true);
                 else
-                    note.withInstrument(instrument);
+                    note.setInstrument(instrument);
 
-                note.withKey(stream.readByte());
+                note.setKey(stream.readByte());
                 if (header.Version >= 4) {
-                    note.withVolume(stream.readByte())
-                            .withPanning(200 - stream.readUnsignedByte()) // 0 is right in nbs format
-                            .withPitch(readShort(stream));
+                    note.setVolume(stream.readByte())
+                            .setPanning(200 - stream.readUnsignedByte()) // 0 is right in nbs format
+                            .setPitch(readShort(stream));
                 }
 
-                if (note.getPanning() != Note.NEUTRAL_PANNING){
-                    song.withStereo(true);
-                }
-
-                song.withNote(tick, layer, note);
+                song.setNote(tick, layer, note);
             }
         }
     }
@@ -145,18 +141,14 @@ class NBSReader {
         for (int i = 0; i < song.getLayersCount(); i++) {
             Layer layer = song.getLayer(i);
 
-            layer.withName(readString(stream));
+            layer.setName(readString(stream));
             if (header.Version >= 4){
-                layer.withLocked(stream.readByte() == 1);
+                layer.setLocked(stream.readByte() == 1);
             }
 
-            layer.withVolume(stream.readByte());
+            layer.setVolume(stream.readByte());
             if (header.Version >= 2){
-                layer.withPanning(200 - stream.readUnsignedByte()); // 0 is right in nbs format
-            }
-
-            if (layer.getPanning() != Layer.NEUTRAL_PANNING){
-                song.withStereo(true);
+                layer.setPanning(200 - stream.readUnsignedByte()); // 0 is right in nbs format
             }
         }
     }
@@ -165,10 +157,10 @@ class NBSReader {
         byte customInstrumentCount = stream.readByte();
 
         for (int index = 0; index < customInstrumentCount; index++) {
-            song.withCustomInstrument(new CustomInstrument()
-                    .withName(readString(stream))
-                    .withFileName(readString(stream))
-                    .withPitch(stream.readByte()));
+            song.addCustomInstrument(new CustomInstrument()
+                    .setName(readString(stream))
+                    .setFileName(readString(stream))
+                    .setPitch(stream.readByte()));
             stream.readByte();
         }
     }

@@ -22,11 +22,15 @@ public final class Note {
         this.layer = layer;
     }
 
-    public Note withInstrument(int instrument){
-        return withInstrument(instrument, false);
+    void removedFromLayer(){
+        this.layer = null;
     }
 
-    public Note withInstrument(int instrument, boolean isCustom){
+    public Note setInstrument(int instrument){
+        return setInstrument(instrument, false);
+    }
+
+    public Note setInstrument(int instrument, boolean isCustom){
         throwIfFrozen();
 
         if (instrument < 0)
@@ -35,34 +39,41 @@ public final class Note {
         this.instrument = instrument;
         isCustomInstrument = isCustom;
 
+        if (!isCustomInstrument && layer != null)
+            layer.getSong().increaseNonCustomInstrumentsCountTo(instrument + 1);
+
         return this;
     }
 
-    public Note withKey(byte key){
+    public Note setKey(byte key){
         throwIfFrozen();
 
         this.key = key;
         return this;
     }
 
-    public Note withVolume(byte volume){
+    public Note setVolume(byte volume){
         throwIfFrozen();
 
         this.volume = volume;
         return this;
     }
 
-    public Note withPitch(int pitch){
+    public Note setPitch(int pitch){
         throwIfFrozen();
 
         this.pitch = pitch;
         return this;
     }
 
-    public Note withPanning(int panning){
+    public Note setPanning(int panning){
         throwIfFrozen();
 
         this.panning = panning;
+
+        if (layer != null && panning != NEUTRAL_PANNING)
+            layer.getSong().setStereo();
+
         return this;
     }
 
