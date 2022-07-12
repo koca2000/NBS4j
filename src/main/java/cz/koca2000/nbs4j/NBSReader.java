@@ -160,7 +160,7 @@ class NBSReader {
             song.addCustomInstrument(new CustomInstrument()
                     .setName(readString(stream))
                     .setFileName(readString(stream))
-                    .setPitch(stream.readByte())
+                    .setKey(stream.readByte())
                     .setShouldPressKey(stream.readBoolean()));
         }
     }

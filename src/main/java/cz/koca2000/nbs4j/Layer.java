@@ -36,10 +36,6 @@ public final class Layer {
         notes.put(tick, note);
     }
 
-    public Note getNote(int tick){
-        return notes.getOrDefault(tick, null);
-    }
-
     void freeze(){
         if (isFrozen)
             return;
@@ -51,6 +47,12 @@ public final class Layer {
         isFrozen = true;
     }
 
+    /**
+     * Sets whether the layer is locked in OpenNoteBlockStudio
+     * @param locked whether the layer is locked
+     * @return this instance of {@link Layer}
+     * @throws IllegalStateException if the layer is frozen and can not be modified
+     */
     public Layer setLocked(boolean locked){
         throwIfFrozen();
 
@@ -58,6 +60,12 @@ public final class Layer {
         return this;
     }
 
+    /**
+     * Sets the display name of the layer.
+     * @param name name of the layer
+     * @return this instance of {@link Layer}
+     * @throws IllegalStateException if the layer is frozen and can not be modified
+     */
     public Layer setName(String name){
         throwIfFrozen();
 
@@ -65,6 +73,13 @@ public final class Layer {
         return this;
     }
 
+    /**
+     * Sets the stereo offset of the layer.
+     * @param panning -100 two blocks left; 0 center; 100 two blocks right
+     * @return this instance of {@link Layer}
+     * @throws IllegalArgumentException if the panning is out of range [-100; 100] inclusive]
+     * @throws IllegalStateException if the layer is frozen and can not be modified
+     */
     public Layer setPanning(int panning){
         throwIfFrozen();
 
@@ -79,6 +94,13 @@ public final class Layer {
         return this;
     }
 
+    /**
+     * Sets the volume of this layer.
+     * @param volume volume between 0 and 100.
+     * @return this instance of {@link Layer}
+     * @throws IllegalArgumentException if volume is outside of range [0; 100] inclusive.
+     * @throws IllegalStateException if the layer is frozen and can not be modified
+     */
     public Layer setVolume(int volume){
         throwIfFrozen();
 
@@ -89,30 +111,67 @@ public final class Layer {
         return this;
     }
 
+    /**
+     * Returns value of stereo offset of this note.
+     * @return value in range [-100; 100]; -100 two blocks left; 0 center; 100 two blocks right
+     */
     public int getPanning() {
         return panning;
     }
 
+    /**
+     * Returns the volume of this note.
+     * @return value in range [0; 100]
+     */
     public int getVolume(){
         return volume;
     }
 
+    /**
+     * Returns the display name of the layer
+     * @return name of the layer
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Returns whether the layer is locked in OpenNoteBlockStudio
+     * @return true if the layer is locked; otherwise, false
+     */
     public boolean isLocked() {
         return isLocked;
     }
 
+    /**
+     * Returns whether the layer contains any notes
+     * @return true if there are no notes in this layer; otherwise, false
+     */
     public boolean isEmpty(){
         return notes.size() == 0;
     }
 
+    /**
+     * Returns whether the layer is frozen and can not be modified.
+     * @return true if the layer is frozen; otherwise, false
+     */
     public boolean isFrozen(){
         return isFrozen;
     }
 
+    /**
+     * Returns note on specific tick on this layer.
+     * @param tick tick of the note
+     * @return {@link Note} if there is a note on the give tick; otherwise, null
+     */
+    public Note getNote(int tick){
+        return notes.getOrDefault(tick, null);
+    }
+
+    /**
+     * Returns the song this layer belongs to.
+     * @return {@link Song} if the layer was added to a song; otherwise, null
+     */
     public Song getSong() {
         return song;
     }

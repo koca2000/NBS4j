@@ -150,7 +150,7 @@ class NBSWriter {
             CustomInstrument customInstrument = song.getCustomInstrument(i);
             writeString(stream, customInstrument.getName());
             writeString(stream, customInstrument.getFileName());
-            stream.writeByte(customInstrument.getPitch());
+            stream.writeByte(customInstrument.getKey());
             stream.writeBoolean(customInstrument.shouldPressKey());
         }
     }

@@ -1,16 +1,12 @@
 package cz.koca2000.nbs4j.test;
 
 import cz.koca2000.nbs4j.*;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -43,7 +39,7 @@ public class SaveLoadTests {
                 .addCustomInstrument(new CustomInstrument()
                         .setName("Custom Instrument 1")
                         .setFileName("file/name")
-                        .setPitch(10)
+                        .setKey(10)
                         .setShouldPressKey(true));
         originalSong.freezeSong();
     }
@@ -153,7 +149,7 @@ public class SaveLoadTests {
 
         assertEquals(originalSong.getCustomInstrumentsCount(), savedSong.getCustomInstrumentsCount());
         for (int i = 0; i < originalSong.getCustomInstrumentsCount(); i++){
-            assertEquals(originalSong.getCustomInstrument(i).getPitch(), savedSong.getCustomInstrument(i).getPitch());
+            assertEquals(originalSong.getCustomInstrument(i).getKey(), savedSong.getCustomInstrument(i).getKey());
         }
     }
 

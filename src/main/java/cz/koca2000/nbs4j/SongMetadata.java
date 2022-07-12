@@ -21,146 +21,291 @@ public class SongMetadata {
     private byte loopMaxCount = 0;
     private short loopStartTick = 0;
 
+    /**
+     * Sets the title of the song
+     * @param title song title
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setTitle(String title) {
         this.title = title;
         return this;
     }
 
+    /**
+     * Sets name of the author of the nbs song.
+     * @param author author's name
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setAuthor(String author) {
         this.author = author;
         return this;
     }
 
+    /**
+     * Sets name of the author of the original song that inspired the nbs song.
+     * @param originalAuthor original song author's name
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setOriginalAuthor(String originalAuthor) {
         this.originalAuthor = originalAuthor;
         return this;
     }
 
+    /**
+     * Sets description of the song.
+     * @param description song's description
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setDescription(String description) {
         this.description = description;
         return this;
     }
 
+    /**
+     * Sets whether the song should be auto-saved during modifications in OpenNoteBlockStudio
+     * @param autoSave true if the OpenNoteBlockStudio should do auto-save.
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setAutoSave(boolean autoSave) {
         this.autoSave = autoSave;
         return this;
     }
 
+    /**
+     * Sets the duration between two auto-saves in OpenNoteBlockStudio. No longer used.
+     * @param autoSaveDuration minutes between auto-saves
+     * @see #setAutoSave(boolean)
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setAutoSaveDuration(byte autoSaveDuration) {
         this.autoSaveDuration = autoSaveDuration;
         return this;
     }
 
+    /**
+     * Sets time signature as x/4ths
+     * @param timeSignature x part of x/4ths time signature
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setTimeSignature(byte timeSignature) {
         this.timeSignature = timeSignature;
         return this;
     }
 
+    /**
+     * Sets how many minutes were spent by editing the song in OpenNoteBlockStudio.
+     * @param minutesSpent number of minutes
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setMinutesSpent(int minutesSpent) {
         this.minutesSpent = minutesSpent;
         return this;
     }
 
+    /**
+     * Sets how many left clicks were done while editing the song in OpenNoteBlockStudio.
+     * @param leftClicks number of left clicks
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setLeftClicks(int leftClicks) {
         this.leftClicks = leftClicks;
         return this;
     }
 
+    /**
+     * Sets how many right clicks were done while editing the song in OpenNoteBlockStudio.
+     * @param rightClicks number of right clicks
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setRightClicks(int rightClicks) {
         this.rightClicks = rightClicks;
         return this;
     }
 
+    /**
+     * Sets how many notes were added while editing the song in OpenNoteBlockStudio.
+     * @param noteBlocksAdded number of added notes
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setNoteBlocksAdded(int noteBlocksAdded) {
         this.noteBlocksAdded = noteBlocksAdded;
         return this;
     }
 
+    /**
+     * Sets how many notes were removed while editing the song in OpenNoteBlockStudio.
+     * @param noteBlocksRemoved number of removed notes
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setNoteBlocksRemoved(int noteBlocksRemoved) {
         this.noteBlocksRemoved = noteBlocksRemoved;
         return this;
     }
 
+    /**
+     * Sets the name of the midi file that were used to generate this nbs song.
+     * @param originalMidiFileName name of the midi file
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setOriginalMidiFileName(String originalMidiFileName) {
         this.originalMidiFileName = originalMidiFileName;
         return this;
     }
 
+    /**
+     * Sets whether the playback in OpenNoteBlockStudio should loop.
+     * @param loop true if song should loop; otherwise, false
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setLoop(boolean loop) {
         this.loop = loop;
         return this;
     }
 
+    /**
+     * Sets how many times the song may be looped in OpenNoteBlockStudio.
+     * @param loopMaxCount number of loops to do, 0 is infinite loop
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setLoopMaxCount(byte loopMaxCount) {
         this.loopMaxCount = loopMaxCount;
         return this;
     }
 
+    /**
+     * Sets from which tick should the loop playback start in OpenNoteBlockStudio.
+     * @param loopStartTick first tick of the loop
+     * @return this instance of {@link SongMetadata}
+     */
     public SongMetadata setLoopStartTick(short loopStartTick) {
         this.loopStartTick = loopStartTick;
         return this;
     }
 
+    /**
+     * Returns the title of the song.
+     * @return title
+     */
     public String getTitle() {
         return title;
     }
 
+    /**
+     * Returns the name of the author of the song.
+     * @return author's name
+     */
     public String getAuthor() {
         return author;
     }
 
+    /**
+     * Returns the name of the author of the original song this nbs song was inspired by.
+     * @return original song author's name
+     */
     public String getOriginalAuthor() {
         return originalAuthor;
     }
 
+    /**
+     * Returns description of the song.
+     * @return song's description
+     */
     public String getDescription() {
         return description;
     }
 
+    /**
+     * Returns whether the song should be auto-saved during modifications in OpenNoteBlockStudio
+     * @return true if the OpenNoteBlockStudio should do auto-save; otherwise, false.
+     */
     public boolean isAutoSave() {
         return autoSave;
     }
 
+    /**
+     * Returns the duration between two auto-saves in OpenNoteBlockStudio. No longer used.
+     * @return minutes between auto-saves
+     */
     public byte getAutoSaveDuration() {
         return autoSaveDuration;
     }
 
+    /**
+     * Returns x/4ths time signature
+     * @return x part of x/4ths time signature
+     */
     public byte getTimeSignature() {
         return timeSignature;
     }
 
+    /**
+     * Returns how many minutes were spent by editing the song in OpenNoteBlockStudio.
+     * @return number of minutes
+     */
     public int getMinutesSpent() {
         return minutesSpent;
     }
 
+    /**
+     * Returns how many left clicks were done while editing the song in OpenNoteBlockStudio.
+     * @return number of left clicks
+     */
     public int getLeftClicks() {
         return leftClicks;
     }
 
+    /**
+     * Returns how many right clicks were done while editing the song in OpenNoteBlockStudio.
+     * @return number of right clicks
+     */
     public int getRightClicks() {
         return rightClicks;
     }
 
+    /**
+     * Returns how many notes were added while editing the song in OpenNoteBlockStudio.
+     * @return number of added notes
+     */
     public int getNoteBlocksAdded() {
         return noteBlocksAdded;
     }
 
+    /**
+     * Returns how many notes were removed while editing the song in OpenNoteBlockStudio.
+     * @return number of removed notes
+     */
     public int getNoteBlocksRemoved() {
         return noteBlocksRemoved;
     }
 
+    /**
+     * Returns the name of the midi file that were used to generate this nbs song.
+     * @return name of the midi file
+     */
     public String getOriginalMidiFileName() {
         return originalMidiFileName;
     }
 
+    /**
+     * Returns whether the playback in OpenNoteBlockStudio should loop.
+     * @return true if song should loop; otherwise, false
+     */
     public boolean isLoop() {
         return loop;
     }
 
+    /**
+     * Returns how many times the song may be looped in OpenNoteBlockStudio.
+     * @return number of loops to do, 0 is infinite loop
+     */
     public byte getLoopMaxCount() {
         return loopMaxCount;
     }
 
+    /**
+     * Returns from which tick should the loop playback start in OpenNoteBlockStudio.
+     * @return first tick of the loop
+     */
     public short getLoopStartTick() {
         return loopStartTick;
     }

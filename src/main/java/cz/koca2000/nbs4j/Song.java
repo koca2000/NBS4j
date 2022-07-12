@@ -31,6 +31,8 @@ public class Song {
     public Song addCustomInstrument(CustomInstrument customInstrument){
         throwIfSongFrozen();
 
+        customInstrument.setSong(this);
+
         customInstruments.add(customInstrument);
         return this;
     }
@@ -204,6 +206,10 @@ public class Song {
             layer.freeze();
         }
 
+        for (CustomInstrument instrument : customInstruments){
+            instrument.freeze();
+        }
+
         isSongFrozen = true;
 
         return this;
@@ -283,6 +289,11 @@ public class Song {
         return tempoChanges.floorKey(tick);
     }
 
+    /**
+     * Returns number of non-custom instruments that the song may use
+     * (e.g. if single instrument with index 5 is used, this value returns 6).
+     * @return Number of instruments that has to be available to be able to play all notes of this song.
+     */
     public int getNonCustomInstrumentsCount() {
         return nonCustomInstrumentsCount;
     }
@@ -314,10 +325,23 @@ public class Song {
         NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), stream);
     }
 
+    /**
+     * Loads song from given file
+     * @param file file to be loaded
+     * @return loaded instance of {@link Song}
+     * @throws IOException if file does not exist or can not be opened
+     * @throws SongCorruptedException if an error occurred during the loading
+     */
     public static Song fromFile(File file) throws IOException {
         return NBSReader.readSong(Files.newInputStream(file.toPath()));
     }
 
+    /**
+     * Loads song from the given stream
+     * @param stream stream from which the song will be loaded
+     * @return loaded instance of {@link Song}
+     * @throws SongCorruptedException if an error occurred during the loading
+     */
     public static Song fromStream(InputStream stream) {
         return NBSReader.readSong(stream);
     }

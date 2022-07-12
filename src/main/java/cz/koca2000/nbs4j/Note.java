@@ -26,10 +26,23 @@ public final class Note {
         this.layer = null;
     }
 
+    /**
+     * Sets index of the instrument of this note.
+     * @param instrument index of the instrument
+     * @return this instance of {@link Note}
+     * @throws IllegalStateException if the note is frozen and can not be modified
+     */
     public Note setInstrument(int instrument){
         return setInstrument(instrument, false);
     }
 
+    /**
+     * Sets index of the instrument of this note and whether it is custom instrument.
+     * @param instrument index of the instrument
+     * @param isCustom whether it is custom instrument (custom instruments have their own indexing)
+     * @return this instance of {@link Note}
+     * @throws IllegalStateException if the note is frozen and can not be modified
+     */
     public Note setInstrument(int instrument, boolean isCustom){
         throwIfFrozen();
 
@@ -45,6 +58,13 @@ public final class Note {
         return this;
     }
 
+    /**
+     * Sets the key of this note.
+     * @param key Value 0 is A0 and 87 is C8.
+     * @return this instance of {@link Note}
+     * @throws IllegalArgumentException if the key is outside of range [0; 87] inclusive.
+     * @throws IllegalStateException if the note is frozen and can not be modified
+     */
     public Note setKey(int key){
         throwIfFrozen();
 
@@ -55,6 +75,13 @@ public final class Note {
         return this;
     }
 
+    /**
+     * Sets the volume of this note.
+     * @param volume volume between 0 and 100.
+     * @return this instance of {@link Note}
+     * @throws IllegalArgumentException if volume is outside of range [0; 100] inclusive.
+     * @throws IllegalStateException if the note is frozen and can not be modified
+     */
     public Note setVolume(int volume){
         throwIfFrozen();
 
@@ -65,6 +92,12 @@ public final class Note {
         return this;
     }
 
+    /**
+     * Sets the fine pitch of note.
+     * @param pitch 0 is no fine pitch; +-100 is semitone difference
+     * @return this instance of {@link Note}
+     * @throws IllegalStateException if the note is frozen and can not be modified
+     */
     public Note setPitch(int pitch){
         throwIfFrozen();
 
@@ -72,6 +105,13 @@ public final class Note {
         return this;
     }
 
+    /**
+     * Sets the stereo offset of the note.
+     * @param panning -100 two blocks left; 0 center; 100 two blocks right
+     * @return this instance of {@link Note}
+     * @throws IllegalArgumentException if the panning is out of range [-100; 100] inclusive]
+     * @throws IllegalStateException if the note is frozen and can not be modified
+     */
     public Note setPanning(int panning){
         throwIfFrozen();
 
@@ -90,30 +130,58 @@ public final class Note {
         isFrozen = true;
     }
 
+    /**
+     * Returns the index of the instrument of this note. To recognize whether it is custom instrument use {@link #isCustomInstrument()}
+     * @return index of the instrument
+     */
     public int getInstrument() {
         return instrument;
     }
 
+    /**
+     * Returns whether the note uses custom instrument.
+     * @return true if used instrument is custom instrument; otherwise, false
+     */
     public boolean isCustomInstrument() {
         return isCustomInstrument;
     }
 
+    /**
+     * Returns the key of the note.
+     * @return value in range [0; 87]; 0 is A0 and 87 is C8.
+     */
     public int getKey() {
         return key;
     }
 
+    /**
+     * Returns fine pitch of the note.
+     * @return 0 is no fine pitch; +-100 is semitone difference
+     */
     public int getPitch() {
         return pitch;
     }
 
+    /**
+     * Returns value of stereo offset of this note.
+     * @return value in range [-100; 100]; -100 two blocks left; 0 center; 100 two blocks right
+     */
     public int getPanning() {
         return panning;
     }
 
+    /**
+     * Returns the volume of this note.
+     * @return value in range [0; 100]
+     */
     public byte getVolume() {
         return volume;
     }
 
+    /**
+     * Return the layer this note is in.
+     * @return {@link Layer} if the note was added to a song; otherwise, null.
+     */
     public Layer getLayer() {
         return layer;
     }
