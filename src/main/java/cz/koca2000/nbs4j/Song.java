@@ -120,6 +120,9 @@ public class Song {
         Layer layer = layers.get(layerIndex);
         layer.setNote(tick, note);
 
+        if (!note.isCustomInstrument())
+            increaseNonCustomInstrumentsCountTo(note.getInstrument() + 1);
+
         nonEmptyTicks.add(tick);
         if (lastTick < tick)
             lastTick = tick;
@@ -176,8 +179,10 @@ public class Song {
     public Song setTempoChange(int firstTick, float tempo){
         throwIfSongFrozen();
 
+        if (firstTick >= 0)
+            nonEmptyTicks.add(firstTick);
+
         tempoChanges.put(firstTick, tempo);
-        nonEmptyTicks.add(firstTick);
 
         return this;
     }
@@ -273,6 +278,8 @@ public class Song {
      * @return tempo in ticks per second
      */
     public float getTempo(int tick){
+        if (tempoChanges.size() == 0)
+            return 10;
         return tempoChanges.floorKey(tick);
     }
 
@@ -303,8 +310,8 @@ public class Song {
      * @param nbsVersion version of nbs data format
      * @param stream output stream the song will be written to
      */
-    public void save(int nbsVersion, OutputStream stream){
-        NBSWriter.writeSong(this, nbsVersion, stream);
+    public void save(NBSVersion nbsVersion, OutputStream stream){
+        NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), stream);
     }
 
     public static Song fromFile(File file) throws IOException {

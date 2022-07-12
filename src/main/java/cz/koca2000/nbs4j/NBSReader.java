@@ -83,7 +83,7 @@ class NBSReader {
                 .setAuthor(readString(stream))
                 .setOriginalAuthor(readString(stream))
                 .setDescription(readString(stream));
-        song.setTempoChange(0,readShort(stream) / 100f);
+        song.setTempoChange(-1,readShort(stream) / 100f);
         metadata.setAutoSave(stream.readBoolean())
                 .setAutoSaveDuration(stream.readByte())
                 .setTimeSignature(stream.readByte())
@@ -94,7 +94,7 @@ class NBSReader {
                 .setNoteBlocksRemoved(readInt(stream))
                 .setOriginalMidiFileName(readString(stream));
         if (header.Version >= 4) {
-            metadata.setLoop(stream.readByte() == 1)
+            metadata.setLoop(stream.readBoolean())
                     .setLoopMaxCount(stream.readByte())
                     .setLoopStartTick(readShort(stream));
         }
@@ -128,7 +128,7 @@ class NBSReader {
                 note.setKey(stream.readByte());
                 if (header.Version >= 4) {
                     note.setVolume(stream.readByte())
-                            .setPanning(200 - stream.readUnsignedByte()) // 0 is right in nbs format
+                            .setPanning(100 - stream.readUnsignedByte()) // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
                             .setPitch(readShort(stream));
                 }
 
@@ -148,7 +148,7 @@ class NBSReader {
 
             layer.setVolume(stream.readByte());
             if (header.Version >= 2){
-                layer.setPanning(200 - stream.readUnsignedByte()); // 0 is right in nbs format
+                layer.setPanning(100 - stream.readUnsignedByte()); // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
             }
         }
     }
@@ -160,8 +160,8 @@ class NBSReader {
             song.addCustomInstrument(new CustomInstrument()
                     .setName(readString(stream))
                     .setFileName(readString(stream))
-                    .setPitch(stream.readByte()));
-            stream.readByte();
+                    .setPitch(stream.readByte())
+                    .setShouldPressKey(stream.readBoolean()));
         }
     }
 

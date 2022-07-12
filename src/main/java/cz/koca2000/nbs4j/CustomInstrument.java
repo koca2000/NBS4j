@@ -2,9 +2,9 @@ package cz.koca2000.nbs4j;
 
 public class CustomInstrument {
 
-    private String name;
-    private String fileName;
-    private int pitch;
+    private String name = "";
+    private String fileName = "";
+    private int pitch = 0;
     private boolean shouldPressKey = false;
 
     public CustomInstrument setName(String name){

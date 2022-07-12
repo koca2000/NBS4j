@@ -68,6 +68,9 @@ public final class Layer {
     public Layer setPanning(int panning){
         throwIfFrozen();
 
+        if (panning < -100 || panning > 100)
+            throw new IllegalArgumentException("Panning must be in range [-100; 100] inclusive.");
+
         this.panning = panning;
 
         if (song != null && panning != NEUTRAL_PANNING)
@@ -78,6 +81,9 @@ public final class Layer {
 
     public Layer setVolume(int volume){
         throwIfFrozen();
+
+        if (volume < 0 || volume > 100)
+            throw new IllegalArgumentException("Volume must be in range [0; 100] inclusive.");
 
         this.volume = volume;
         return this;

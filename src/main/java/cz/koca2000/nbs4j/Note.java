@@ -45,17 +45,23 @@ public final class Note {
         return this;
     }
 
-    public Note setKey(byte key){
+    public Note setKey(int key){
         throwIfFrozen();
 
-        this.key = key;
+        if (key < 0 || key > 87)
+            throw new IllegalArgumentException("Key must be in range [0; 87] inclusive.");
+
+        this.key = (byte) key;
         return this;
     }
 
-    public Note setVolume(byte volume){
+    public Note setVolume(int volume){
         throwIfFrozen();
 
-        this.volume = volume;
+        if (volume < 0 || volume > 100)
+            throw new IllegalArgumentException("Volume must be in range [0; 100] inclusive.");
+
+        this.volume = (byte) volume;
         return this;
     }
 
@@ -68,6 +74,9 @@ public final class Note {
 
     public Note setPanning(int panning){
         throwIfFrozen();
+
+        if (panning < -100 || panning > 100)
+            throw new IllegalArgumentException("Panning must be in range [-100; 100] inclusive.");
 
         this.panning = panning;
 
