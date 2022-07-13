@@ -36,7 +36,13 @@ public enum NBSVersion {
      *
      * <p>Doesn't support following features:
      * tempo change
-     */    V5(5);
+     */
+    V5(5),
+
+    /**
+     * Same as {@link #V5}.
+     */
+    LATEST(5);
 
     private final int versionNumber;
 

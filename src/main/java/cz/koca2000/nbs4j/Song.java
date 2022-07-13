@@ -326,6 +326,16 @@ public class Song {
     }
 
     /**
+     * Saves this song to the given file using the given nbs version.
+     * @param nbsVersion version of nbs data format
+     * @param file file the song will be written to
+     * @throws IOException if the file can not be written
+     */
+    public void save(NBSVersion nbsVersion, File file) throws IOException{
+        NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), Files.newOutputStream(file.toPath()));
+    }
+
+    /**
      * Loads song from given file
      * @param file file to be loaded
      * @return loaded instance of {@link Song}
