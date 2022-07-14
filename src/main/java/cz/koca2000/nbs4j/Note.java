@@ -15,6 +15,24 @@ public final class Note {
 
     private boolean isFrozen = false;
 
+    public Note(){}
+
+    /**
+     * Creates a copy of the note that is not frozen and does not belong to any song and layer.
+     * @param note note to be copied
+     */
+    public Note(Note note){
+        instrument = note.instrument;
+        isCustomInstrument = note.isCustomInstrument;
+        key = note.key;
+        pitch = note.pitch;
+        panning = note.panning;
+        volume = note.volume;
+
+        isFrozen = false;
+        layer = null;
+    }
+
     void setLayer(Layer layer){
         if (this.layer != null)
             throw new IllegalStateException("Note was already added to a layer.");

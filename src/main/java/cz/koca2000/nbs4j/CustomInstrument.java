@@ -10,6 +10,22 @@ public class CustomInstrument {
     private boolean isFrozen = false;
     private Song song;
 
+    public CustomInstrument(){}
+
+    /**
+     * Creates a copy of the custom instrument. Copy is not frozen and does not belong to any song.
+     * @param customInstrument custom instrument to be copied
+     */
+    public CustomInstrument(CustomInstrument customInstrument){
+        name = customInstrument.name;
+        fileName = customInstrument.fileName;
+        key = customInstrument.key;
+        shouldPressKey = customInstrument.shouldPressKey;
+
+        isFrozen = false;
+        song = null;
+    }
+
     CustomInstrument setSong(Song song){
         if (this.song != null)
             throw new IllegalStateException("Custom instrument was already added to a song.");

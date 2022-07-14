@@ -21,6 +21,31 @@ public class SongMetadata {
     private byte loopMaxCount = 0;
     private short loopStartTick = 0;
 
+    public SongMetadata(){}
+
+    /**
+     * Makes a copy of all metadata
+     * @param metadata metadata to be copied
+     */
+    SongMetadata(SongMetadata metadata){
+        title = metadata.title;
+        author = metadata.author;
+        originalAuthor = metadata.originalAuthor;
+        description = metadata.description;
+        autoSave = metadata.autoSave;
+        autoSaveDuration = metadata.autoSaveDuration;
+        timeSignature = metadata.timeSignature;
+        minutesSpent = metadata.minutesSpent;
+        leftClicks = metadata.leftClicks;
+        rightClicks = metadata.rightClicks;
+        noteBlocksAdded = metadata.noteBlocksAdded;
+        noteBlocksRemoved = metadata.noteBlocksRemoved;
+        originalMidiFileName = metadata.originalMidiFileName;
+        loop = metadata.loop;
+        loopMaxCount = metadata.loopMaxCount;
+        loopStartTick = metadata.loopStartTick;
+    }
+
     /**
      * Sets the title of the song
      * @param title song title

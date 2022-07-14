@@ -6,10 +6,10 @@ import java.util.*;
 
 public class Song {
 
-    private final List<Layer> layers = new ArrayList<>();
+    private final List<Layer> layers;
     private boolean isSongFrozen = false;
 
-    private final SongMetadata metadata = new SongMetadata();
+    private final SongMetadata metadata;
     private boolean isStereo = false;
     private int songLength = 0;
 
@@ -21,6 +21,41 @@ public class Song {
     // <Tick, Tempo>
     private final TreeMap<Integer, Float> tempoChanges = new TreeMap<>();
     private int lastTick = -1;
+
+    public Song(){
+        layers = new ArrayList<>();
+        metadata = new SongMetadata();
+    }
+
+    /**
+     * Creates deep copy of the song that is not frozen.
+     * @param song song to be copied
+     */
+    public Song(Song song){
+        layers = new ArrayList<>();
+        metadata = new SongMetadata(song.metadata);
+
+        songLength = song.songLength;
+        nonCustomInstrumentsCount = song.nonCustomInstrumentsCount;
+
+        for (CustomInstrument instrument : song.customInstruments){
+            addCustomInstrument(new CustomInstrument(instrument));
+        }
+
+        for (int i = 0; i < song.getLayersCount(); i++){
+            Layer layer = song.getLayer(i);
+            addLayer(new Layer(layer));
+            for (Map.Entry<Integer, Note> noteEntry : layer.getNotes().entrySet()){
+                setNote(noteEntry.getKey(), i, new Note(noteEntry.getValue()));
+            }
+        }
+
+        for (Map.Entry<Integer, Float> entry : song.tempoChanges.entrySet()){
+            setTempoChange(entry.getKey(), entry.getValue());
+        }
+
+        isSongFrozen = false;
+    }
 
     /**
      * Adds the custom instrument to the end of the list with custom instruments of this song.

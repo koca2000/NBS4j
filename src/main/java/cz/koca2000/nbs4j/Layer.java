@@ -18,6 +18,22 @@ public final class Layer {
     private Song song;
     private boolean isFrozen = false;
 
+    public Layer(){}
+
+    /**
+     * Copies parameters of the other layer. Notes are not copied. Copy is not frozen.
+     * @param layer layer to be copied
+     */
+    public Layer(Layer layer){
+        name = layer.name;
+        volume = layer.volume;
+        panning = layer.panning;
+        isLocked = layer.isLocked;
+
+        isFrozen = false;
+        song = null;
+    }
+
     Layer setSong(Song song){
         if (this.song != null)
             throw new IllegalStateException("Layer was already added to a song.");
@@ -176,6 +192,21 @@ public final class Layer {
      */
     public Map<Integer, Note> getNotes(){
         return Collections.unmodifiableMap(notes);
+    }
+
+    /**
+     * Returns index of this layer in its song.
+     * @return index
+     * @throws IllegalStateException if layer is not in any song.
+     */
+    public int getIndexInSong(){
+        if (song == null)
+            throw new IllegalStateException("Layer is not in any song.");
+        for (int i = 0; i < song.getLayersCount(); i++){
+            if (song.getLayer(i) == this)
+                return i;
+        }
+        throw new IllegalStateException("Layer is not in any song.");
     }
 
     /**
