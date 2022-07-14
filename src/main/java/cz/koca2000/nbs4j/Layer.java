@@ -1,6 +1,8 @@
 package cz.koca2000.nbs4j;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 public final class Layer {
 
@@ -166,6 +168,14 @@ public final class Layer {
      */
     public Note getNote(int tick){
         return notes.getOrDefault(tick, null);
+    }
+
+    /**
+     * Returns unmodifiable {@link Map} of notes indexed by their tick.
+     * @return unmodifiable {@link Map}
+     */
+    public Map<Integer, Note> getNotes(){
+        return Collections.unmodifiableMap(notes);
     }
 
     /**

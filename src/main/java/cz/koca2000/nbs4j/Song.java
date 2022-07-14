@@ -317,6 +317,22 @@ public class Song {
     }
 
     /**
+     * Returns unmodifiable {@link List} of song's layers.
+     * @return unmodifiable {@link List} of layers
+     */
+    public List<Layer> getLayers(){
+        return Collections.unmodifiableList(layers);
+    }
+
+    /**
+     * Returns unmodifiable {@link List} of song's custom instruments.
+     * @return unmodifiable {@link List} of custom instruments
+     */
+    public List<CustomInstrument> getCustomInstruments(){
+        return Collections.unmodifiableList(customInstruments);
+    }
+
+    /**
      * Saves this song to the given stream using the given nbs version.
      * @param nbsVersion version of nbs data format
      * @param stream output stream the song will be written to
