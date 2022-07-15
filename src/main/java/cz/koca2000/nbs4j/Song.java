@@ -341,11 +341,11 @@ public class Song {
      * @return tick number if there is any note or tempo change left; otherwise, -1
      */
     public int getNextNonEmptyTick(int fromTick){
-        NavigableSet<Integer> subset = nonEmptyTicks.tailSet(fromTick, false);
-        if (subset.size() == 0)
+        Integer tick = nonEmptyTicks.higher(fromTick);
+        if (tick == null)
             return -1;
 
-        return subset.first();
+        return tick;
     }
 
     /**
@@ -356,7 +356,7 @@ public class Song {
     public float getTempo(int tick){
         if (tempoChanges.size() == 0)
             return 10;
-        return tempoChanges.floorKey(tick);
+        return tempoChanges.floorEntry(tick).getValue();
     }
 
     /**

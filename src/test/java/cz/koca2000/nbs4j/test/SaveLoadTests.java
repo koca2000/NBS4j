@@ -40,7 +40,8 @@ public class SaveLoadTests {
                         .setName("Custom Instrument 1")
                         .setFileName("file/name")
                         .setKey(10)
-                        .setShouldPressKey(true));
+                        .setShouldPressKey(true))
+                .setTempoChange(-1, 8.0f);
         originalSong.freezeSong();
     }
 
@@ -162,6 +163,14 @@ public class SaveLoadTests {
         for (int i = 0; i < originalSong.getCustomInstrumentsCount(); i++){
             assertEquals(originalSong.getCustomInstrument(i).shouldPressKey(), savedSong.getCustomInstrument(i).shouldPressKey());
         }
+    }
+
+    @ParameterizedTest
+    @EnumSource
+    void tempo(NBSVersion nbsVersion){
+        Song savedSong = saveAndLoad(originalSong, nbsVersion);
+
+        assertEquals(originalSong.getTempo(0), savedSong.getTempo(0));
     }
 
     private static Song saveAndLoad(Song song, NBSVersion nbsVersion){
