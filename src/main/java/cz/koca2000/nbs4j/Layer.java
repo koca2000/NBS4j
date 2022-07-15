@@ -55,6 +55,18 @@ public final class Layer {
         notes.put(tick, note);
     }
 
+    void removeNote(int tick, boolean fromSong){
+        if (!fromSong && song != null) {
+            song.removeNote(tick, getIndexInSong());
+            return;
+        }
+
+        if (notes.containsKey(tick)){
+            notes.get(tick).removedFromLayer();
+            notes.remove(tick);
+        }
+    }
+
     void freeze(){
         if (isFrozen)
             return;

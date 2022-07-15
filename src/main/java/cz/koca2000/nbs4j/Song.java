@@ -173,6 +173,39 @@ public class Song {
     }
 
     /**
+     * Removes note on specific tick and layer.
+     * @param tick tick on which is the note to be removed
+     * @param layerIndex index of layer of the note
+     * @return this instance of {@link Song}
+     */
+    public Song removeNote(int tick, int layerIndex){
+        throwIfSongFrozen();
+
+        Layer layer = layers.get(layerIndex);
+        layer.removeNote(tick, true);
+
+        boolean otherNoteExists = false;
+        for (int i = 0; i < layers.size(); i++){
+            if (layer.getNote(tick) != null) {
+                otherNoteExists = true;
+                break;
+            }
+        }
+        otherNoteExists |= tempoChanges.containsKey(tick);
+
+        if (!otherNoteExists) {
+            nonEmptyTicks.remove(tick);
+            if (tick == lastTick){
+                lastTick = nonEmptyTicks.last();
+                if (tick == songLength - 1)
+                    songLength = lastTick + 1;
+            }
+        }
+
+        return this;
+    }
+
+    /**
      * Specifies the length of the song.
      * @param length new length of the song
      * @throws IllegalArgumentException if song with specified length would not contain all notes or tempo changes.
