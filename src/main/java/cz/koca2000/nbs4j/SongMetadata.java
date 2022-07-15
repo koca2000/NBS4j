@@ -7,7 +7,7 @@ public class SongMetadata {
     private String originalAuthor = "";
     private String description = "";
     private boolean autoSave = false;
-    private byte autoSaveDuration = 0;
+    private byte autoSaveDuration = 10;
     private byte timeSignature = 4; // x/4ths
 
     private int minutesSpent = 0;
@@ -50,8 +50,11 @@ public class SongMetadata {
      * Sets the title of the song
      * @param title song title
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is null.
      */
     public SongMetadata setTitle(String title) {
+        if (title == null)
+            throw new IllegalArgumentException("Title can not be null.");
         this.title = title;
         return this;
     }
@@ -60,8 +63,11 @@ public class SongMetadata {
      * Sets name of the author of the nbs song.
      * @param author author's name
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is null.
      */
     public SongMetadata setAuthor(String author) {
+        if (author == null)
+            throw new IllegalArgumentException("Author can not be null.");
         this.author = author;
         return this;
     }
@@ -70,8 +76,11 @@ public class SongMetadata {
      * Sets name of the author of the original song that inspired the nbs song.
      * @param originalAuthor original song author's name
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is null.
      */
     public SongMetadata setOriginalAuthor(String originalAuthor) {
+        if (originalAuthor == null)
+            throw new IllegalArgumentException("Original author can not be null.");
         this.originalAuthor = originalAuthor;
         return this;
     }
@@ -80,8 +89,11 @@ public class SongMetadata {
      * Sets description of the song.
      * @param description song's description
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is null.
      */
     public SongMetadata setDescription(String description) {
+        if (description == null)
+            throw new IllegalArgumentException("Description can not be null.");
         this.description = description;
         return this;
     }
@@ -98,11 +110,14 @@ public class SongMetadata {
 
     /**
      * Sets the duration between two auto-saves in OpenNoteBlockStudio. No longer used.
-     * @param autoSaveDuration minutes between auto-saves
+     * @param autoSaveDuration minutes between auto-saves in range [1; 60] inclusive.
      * @see #setAutoSave(boolean)
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is not in range [1; 60].
      */
     public SongMetadata setAutoSaveDuration(byte autoSaveDuration) {
+        if (autoSaveDuration < 1 || autoSaveDuration > 60)
+            throw new IllegalArgumentException("Auto-save duration must be in range [1; 60].");
         this.autoSaveDuration = autoSaveDuration;
         return this;
     }
@@ -111,8 +126,11 @@ public class SongMetadata {
      * Sets time signature as x/4ths
      * @param timeSignature x part of x/4ths time signature
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is not in range [2; 8].
      */
     public SongMetadata setTimeSignature(byte timeSignature) {
+        if (timeSignature < 2 || timeSignature > 8)
+            throw new IllegalArgumentException("Time signature must be in range [2; 8].");
         this.timeSignature = timeSignature;
         return this;
     }
@@ -121,8 +139,11 @@ public class SongMetadata {
      * Sets how many minutes were spent by editing the song in OpenNoteBlockStudio.
      * @param minutesSpent number of minutes
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public SongMetadata setMinutesSpent(int minutesSpent) {
+        if (minutesSpent < 0)
+            throw new IllegalArgumentException("Amount of minutes spent on project can not be negative.");
         this.minutesSpent = minutesSpent;
         return this;
     }
@@ -131,8 +152,11 @@ public class SongMetadata {
      * Sets how many left clicks were done while editing the song in OpenNoteBlockStudio.
      * @param leftClicks number of left clicks
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public SongMetadata setLeftClicks(int leftClicks) {
+        if (leftClicks < 0)
+            throw new IllegalArgumentException("Number of left clicks can not be negative.");
         this.leftClicks = leftClicks;
         return this;
     }
@@ -141,8 +165,11 @@ public class SongMetadata {
      * Sets how many right clicks were done while editing the song in OpenNoteBlockStudio.
      * @param rightClicks number of right clicks
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public SongMetadata setRightClicks(int rightClicks) {
+        if (rightClicks < 0)
+            throw new IllegalArgumentException("Number of right clicks can not be negative.");
         this.rightClicks = rightClicks;
         return this;
     }
@@ -151,8 +178,11 @@ public class SongMetadata {
      * Sets how many notes were added while editing the song in OpenNoteBlockStudio.
      * @param noteBlocksAdded number of added notes
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public SongMetadata setNoteBlocksAdded(int noteBlocksAdded) {
+        if (noteBlocksAdded < 0)
+            throw new IllegalArgumentException("Number of note blocks added can not be negative.");
         this.noteBlocksAdded = noteBlocksAdded;
         return this;
     }
@@ -161,8 +191,11 @@ public class SongMetadata {
      * Sets how many notes were removed while editing the song in OpenNoteBlockStudio.
      * @param noteBlocksRemoved number of removed notes
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public SongMetadata setNoteBlocksRemoved(int noteBlocksRemoved) {
+        if (noteBlocksRemoved < 0)
+            throw new IllegalArgumentException("Number of note blocks removed can not be negative.");
         this.noteBlocksRemoved = noteBlocksRemoved;
         return this;
     }
@@ -171,8 +204,11 @@ public class SongMetadata {
      * Sets the name of the midi file that were used to generate this nbs song.
      * @param originalMidiFileName name of the midi file
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is null.
      */
     public SongMetadata setOriginalMidiFileName(String originalMidiFileName) {
+        if (originalMidiFileName == null)
+            throw new IllegalArgumentException("Original MIDI file name can not be null.");
         this.originalMidiFileName = originalMidiFileName;
         return this;
     }
@@ -191,8 +227,11 @@ public class SongMetadata {
      * Sets how many times the song may be looped in OpenNoteBlockStudio.
      * @param loopMaxCount number of loops to do, 0 is infinite loop
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public SongMetadata setLoopMaxCount(byte loopMaxCount) {
+        if (loopMaxCount < 0)
+            throw new IllegalArgumentException("Maximum count of loops can not be negative.");
         this.loopMaxCount = loopMaxCount;
         return this;
     }
@@ -201,8 +240,11 @@ public class SongMetadata {
      * Sets from which tick should the loop playback start in OpenNoteBlockStudio.
      * @param loopStartTick first tick of the loop
      * @return this instance of {@link SongMetadata}
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public SongMetadata setLoopStartTick(short loopStartTick) {
+        if (loopStartTick < 0)
+            throw new IllegalArgumentException("First tick of loop can not be negative.");
         this.loopStartTick = loopStartTick;
         return this;
     }

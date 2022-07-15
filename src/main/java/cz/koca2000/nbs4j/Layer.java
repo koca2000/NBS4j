@@ -6,13 +6,14 @@ import java.util.Map;
 
 public final class Layer {
 
-    public static final int NEUTRAL_PANNING = 100;
+    public static final int NEUTRAL_PANNING = 0;
+    public static final int MAXIMUM_PANNING = 100;
 
     private final HashMap<Integer, Note> notes = new HashMap<>();
 
     private String name = "";
     private int volume = 100;
-    private int panning = 100;
+    private int panning = 0;
     private boolean isLocked = false;
 
     private Song song;
@@ -101,8 +102,8 @@ public final class Layer {
     public Layer setPanning(int panning){
         throwIfFrozen();
 
-        if (panning < -100 || panning > 100)
-            throw new IllegalArgumentException("Panning must be in range [-100; 100] inclusive.");
+        if (panning < -MAXIMUM_PANNING || panning > MAXIMUM_PANNING)
+            throw new IllegalArgumentException("Panning must be in range [-" + MAXIMUM_PANNING + "; " + MAXIMUM_PANNING +"] inclusive.");
 
         this.panning = panning;
 

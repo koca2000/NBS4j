@@ -2,7 +2,8 @@ package cz.koca2000.nbs4j;
 
 public final class Note {
 
-    public static final int NEUTRAL_PANNING = 100;
+    public static final int NEUTRAL_PANNING = 0;
+    public static final int MAXIMUM_PANNING = 100;
 
     private Layer layer;
 
@@ -10,7 +11,7 @@ public final class Note {
     private boolean isCustomInstrument = false;
     private int key = 45;
     private int pitch = 0;
-    private int panning = 100;
+    private int panning = 0;
     private byte volume = 100;
 
     private boolean isFrozen = false;
@@ -127,14 +128,14 @@ public final class Note {
      * Sets the stereo offset of the note.
      * @param panning -100 two blocks left; 0 center; 100 two blocks right
      * @return this instance of {@link Note}
-     * @throws IllegalArgumentException if the panning is out of range [-100; 100] inclusive]
+     * @throws IllegalArgumentException if the panning is out of range [-{@link #MAXIMUM_PANNING}; {@link #MAXIMUM_PANNING}] inclusive]
      * @throws IllegalStateException if the note is frozen and can not be modified
      */
     public Note setPanning(int panning){
         throwIfFrozen();
 
-        if (panning < -100 || panning > 100)
-            throw new IllegalArgumentException("Panning must be in range [-100; 100] inclusive.");
+        if (panning < -MAXIMUM_PANNING || panning > MAXIMUM_PANNING)
+            throw new IllegalArgumentException("Panning must be in range [-" + MAXIMUM_PANNING + "; " + MAXIMUM_PANNING + "] inclusive.");
 
         this.panning = panning;
 
