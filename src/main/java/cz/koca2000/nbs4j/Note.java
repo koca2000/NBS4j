@@ -71,7 +71,7 @@ public final class Note {
         this.instrument = instrument;
         isCustomInstrument = isCustom;
 
-        if (!isCustomInstrument && layer != null)
+        if (!isCustomInstrument && layer != null && layer.getSong() != null)
             layer.getSong().increaseNonCustomInstrumentsCountTo(instrument + 1);
 
         return this;
@@ -139,7 +139,7 @@ public final class Note {
 
         this.panning = panning;
 
-        if (layer != null && panning != NEUTRAL_PANNING)
+        if (panning != NEUTRAL_PANNING && layer != null && layer.getSong() != null)
             layer.getSong().setStereo();
 
         return this;

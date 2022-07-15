@@ -198,7 +198,7 @@ public class Song {
         if (!otherNoteExists) {
             nonEmptyTicks.remove(tick);
             if (tick == lastTick){
-                lastTick = nonEmptyTicks.last();
+                lastTick = nonEmptyTicks.isEmpty() ? -1 : nonEmptyTicks.last();
                 if (tick == songLength - 1)
                     songLength = lastTick + 1;
             }
