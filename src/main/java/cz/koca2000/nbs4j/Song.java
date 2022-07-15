@@ -35,6 +35,8 @@ public class Song {
         layers = new ArrayList<>();
         metadata = new SongMetadata(song.metadata);
 
+        isStereo = song.isStereo;
+        lastTick = song.lastTick;
         songLength = song.songLength;
         nonCustomInstrumentsCount = song.nonCustomInstrumentsCount;
 
@@ -43,11 +45,7 @@ public class Song {
         }
 
         for (int i = 0; i < song.getLayersCount(); i++){
-            Layer layer = song.getLayer(i);
-            addLayer(new Layer(layer));
-            for (Map.Entry<Integer, Note> noteEntry : layer.getNotes().entrySet()){
-                setNote(noteEntry.getKey(), i, new Note(noteEntry.getValue()));
-            }
+            addLayer(new Layer(song.getLayer(i)));
         }
 
         for (Map.Entry<Integer, Float> entry : song.tempoChanges.entrySet()){
@@ -155,8 +153,14 @@ public class Song {
             throw new IndexOutOfBoundsException("Layer index is out of range.");
 
         Layer layer = layers.get(layerIndex);
-        layer.setNote(tick, note);
+        layer.setNoteInternal(tick, note, true);
 
+        onNoteAdded(tick, note);
+
+        return this;
+    }
+
+    void onNoteAdded(int tick, Note note){
         if (!note.isCustomInstrument())
             increaseNonCustomInstrumentsCountTo(note.getInstrument() + 1);
 
@@ -168,8 +172,6 @@ public class Song {
 
         if (note.getPanning() != Note.NEUTRAL_PANNING)
             isStereo = true;
-
-        return this;
     }
 
     /**
@@ -182,7 +184,7 @@ public class Song {
         throwIfSongFrozen();
 
         Layer layer = layers.get(layerIndex);
-        layer.removeNote(tick, true);
+        layer.removeNoteInternal(tick, true);
 
         boolean otherNoteExists = false;
         for (int i = 0; i < layers.size(); i++){

@@ -22,7 +22,7 @@ public final class Layer {
     public Layer(){}
 
     /**
-     * Copies parameters of the other layer. Notes are not copied. Copy is not frozen.
+     * Makes a copy of the layer and its notes. Copy is not frozen.
      * @param layer layer to be copied
      */
     public Layer(Layer layer){
@@ -33,6 +33,10 @@ public final class Layer {
 
         isFrozen = false;
         song = null;
+
+        for (Map.Entry<Integer, Note> noteEntry : layer.notes.entrySet()){
+            setNote(noteEntry.getKey(), new Note(noteEntry.getValue()));
+        }
     }
 
     Layer setSong(Song song){
@@ -40,6 +44,13 @@ public final class Layer {
             throw new IllegalStateException("Layer was already added to a song.");
 
         this.song = song;
+
+        if (!notes.isEmpty()){
+            for (Map.Entry<Integer, Note> noteEntry : notes.entrySet()){
+                song.onNoteAdded(noteEntry.getKey(), noteEntry.getValue());
+            }
+        }
+
         return this;
     }
 
@@ -47,7 +58,12 @@ public final class Layer {
         this.song = null;
     }
 
-    void setNote(int tick, Note note){
+    void setNoteInternal(int tick, Note note, boolean fromSong){
+        if (!fromSong && song != null) {
+            song.setNote(tick, getIndexInSong(), note);
+            return;
+        }
+
         note.setLayer(this);
         if (notes.containsKey(tick)){
             notes.get(tick).removedFromLayer();
@@ -55,7 +71,12 @@ public final class Layer {
         notes.put(tick, note);
     }
 
-    void removeNote(int tick, boolean fromSong){
+    public Layer setNote(int tick, Note note){
+        setNoteInternal(tick, note, false);
+        return this;
+    }
+
+    void removeNoteInternal(int tick, boolean fromSong){
         if (!fromSong && song != null) {
             song.removeNote(tick, getIndexInSong());
             return;
@@ -65,6 +86,11 @@ public final class Layer {
             notes.get(tick).removedFromLayer();
             notes.remove(tick);
         }
+    }
+
+    public Layer removeNote(int tick){
+        removeNoteInternal(tick, false);
+        return this;
     }
 
     void freeze(){
