@@ -12,6 +12,7 @@ public class Song {
     private final SongMetadata metadata;
     private boolean isStereo = false;
     private int songLength = 0;
+    private double songLengthInSeconds = Double.NaN;
 
     private int nonCustomInstrumentsCount = 0;
     private final List<CustomInstrument> customInstruments = new ArrayList<>();
@@ -38,6 +39,7 @@ public class Song {
         isStereo = song.isStereo;
         lastTick = song.lastTick;
         songLength = song.songLength;
+        songLengthInSeconds = song.songLengthInSeconds;
         nonCustomInstrumentsCount = song.nonCustomInstrumentsCount;
 
         for (CustomInstrument instrument : song.customInstruments){
@@ -109,6 +111,8 @@ public class Song {
         if (layer.getPanning() != Layer.NEUTRAL_PANNING)
             isStereo = true;
 
+        songLengthInSeconds = Double.NaN;
+
         return this;
     }
 
@@ -172,6 +176,8 @@ public class Song {
 
         if (note.getPanning() != Note.NEUTRAL_PANNING)
             isStereo = true;
+
+        songLengthInSeconds = Double.NaN;
     }
 
     /**
@@ -204,6 +210,8 @@ public class Song {
             }
         }
 
+        songLengthInSeconds = Double.NaN;
+
         return this;
     }
 
@@ -220,6 +228,9 @@ public class Song {
         if (lastTick >= length)
             throw new IllegalArgumentException("Specified song length would not contain all notes or tempo changes.");
         songLength = length;
+
+        songLengthInSeconds = Double.NaN;
+
         return this;
     }
 
@@ -245,16 +256,22 @@ public class Song {
      * Specifies the change of tempo in ticks per seconds on specific tick.
      * @param firstTick tick since the specified tempo is used.
      * @param tempo tempo in ticks per seconds to be used from this tick on
+     * @throws IllegalArgumentException if the tempo is not positive value
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
     public Song setTempoChange(int firstTick, float tempo){
         throwIfSongFrozen();
 
+        if (tempo <= 0)
+            throw new IllegalArgumentException("Tempo has to be positive value.");
+
         if (firstTick >= 0)
             nonEmptyTicks.add(firstTick);
 
         tempoChanges.put(firstTick, tempo);
+
+        songLengthInSeconds = Double.NaN;
 
         return this;
     }
@@ -333,6 +350,33 @@ public class Song {
      */
     public int getSongLength() {
         return songLength;
+    }
+
+    /**
+     * Calculates and returns the length of the song in seconds with all tempo changes applied.
+     * If the song was not changed since last calculation, cached value is used.
+     * @return length in seconds
+     */
+    public double getSongLengthInSeconds(){
+        if (!Double.isNaN(songLengthInSeconds))
+            return songLengthInSeconds;
+
+        if (songLength == 0)
+            return 0;
+
+        double length = 0;
+        int lastTick = 0;
+        float lastTempo = getTempo(0);
+        for (Map.Entry<Integer, Float> tempo : tempoChanges.entrySet()){
+            if (tempo.getKey() <= 0)
+                continue;
+            length += (tempo.getKey() - lastTick) * (1f / lastTempo);
+            lastTempo = tempo.getValue();
+            lastTick = tempo.getKey();
+        }
+        length += (songLength - lastTick) * (1f / lastTempo);
+        songLengthInSeconds = length;
+        return length;
     }
 
     /**

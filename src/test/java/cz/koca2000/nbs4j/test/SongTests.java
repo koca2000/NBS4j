@@ -2,7 +2,6 @@ package cz.koca2000.nbs4j.test;
 
 import cz.koca2000.nbs4j.Note;
 import cz.koca2000.nbs4j.Song;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,5 +24,18 @@ public class SongTests {
                 .setNote(5, 0, new Note());
 
         assertEquals(5, song.getNextNonEmptyTick(0));
+    }
+
+    @Test
+    void songLengthInSeconds(){
+        Song song = new Song()
+                .setTempoChange(-1, 20)
+                .setTempoChange(10, 10)
+                .setLength(20);
+        assertEquals(0.5 + 1, song.getSongLengthInSeconds(), 0.001);
+
+        song.setLength(40);
+
+        assertEquals(0.5 + 3, song.getSongLengthInSeconds(), 0.001);
     }
 }
