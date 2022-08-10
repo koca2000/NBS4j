@@ -32,7 +32,7 @@ If the library will be provided as external dependency you can use following:
     <dependency>
         <groupId>com.github.koca2000</groupId>
         <artifactId>NBS4j</artifactId>
-        <version>1.0</version>
+        <version>1.2.0</version>
         <scope>provided</scope>
     </dependency>
 </dependencies>
