@@ -1,5 +1,7 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -9,7 +11,8 @@ class NBSReader {
 
     private NBSReader(){}
 
-    public static Song readSong(InputStream stream) {
+    @NotNull
+    public static Song readSong(@NotNull InputStream stream) {
         Song song = new Song();
 
         try {
@@ -32,13 +35,13 @@ class NBSReader {
         return song;
     }
 
-    private static short readShort(DataInputStream dataInputStream) throws IOException {
+    private static short readShort(@NotNull DataInputStream dataInputStream) throws IOException {
         int byte1 = dataInputStream.readUnsignedByte();
         int byte2 = dataInputStream.readUnsignedByte();
         return (short) (byte1 + (byte2 << 8));
     }
 
-    private static int readInt(DataInputStream dataInputStream) throws IOException {
+    private static int readInt(@NotNull DataInputStream dataInputStream) throws IOException {
         int byte1 = dataInputStream.readUnsignedByte();
         int byte2 = dataInputStream.readUnsignedByte();
         int byte3 = dataInputStream.readUnsignedByte();
@@ -46,7 +49,8 @@ class NBSReader {
         return (byte1 + (byte2 << 8) + (byte3 << 16) + (byte4 << 24));
     }
 
-    private static String readString(DataInputStream dataInputStream) throws IOException {
+    @NotNull
+    private static String readString(@NotNull DataInputStream dataInputStream) throws IOException {
         int length = readInt(dataInputStream);
         StringBuilder builder = new StringBuilder(length);
         for (; length > 0; --length) {
@@ -59,7 +63,8 @@ class NBSReader {
         return builder.toString();
     }
 
-    private static HeaderData readHeader(Song song, DataInputStream stream) throws IOException {
+    @NotNull
+    private static HeaderData readHeader(@NotNull Song song, @NotNull DataInputStream stream) throws IOException {
         HeaderData data = new HeaderData();
 
         short length = readShort(stream);
@@ -76,7 +81,7 @@ class NBSReader {
         return data;
     }
 
-    private static void readMetadata(Song song, HeaderData header, DataInputStream stream) throws IOException {
+    private static void readMetadata(@NotNull Song song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
         SongMetadata metadata = song.getMetadata();
 
         metadata.setTitle(readString(stream))
@@ -100,7 +105,7 @@ class NBSReader {
         }
     }
 
-    private static void readNotes(Song song, HeaderData header, DataInputStream stream) throws IOException {
+    private static void readNotes(@NotNull Song song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
         short tick = -1;
         while (true) {
             short jumpTicks = readShort(stream); // jumps till next tick
@@ -137,7 +142,7 @@ class NBSReader {
         }
     }
 
-    private static void readLayers(Song song, HeaderData header, DataInputStream stream) throws IOException {
+    private static void readLayers(@NotNull Song song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
         for (int i = 0; i < song.getLayersCount(); i++) {
             Layer layer = song.getLayer(i);
 
@@ -153,7 +158,7 @@ class NBSReader {
         }
     }
 
-    private static void readCustomInstruments(Song song, DataInputStream stream) throws IOException {
+    private static void readCustomInstruments(@NotNull Song song, @NotNull DataInputStream stream) throws IOException {
         byte customInstrumentCount = stream.readByte();
 
         for (int index = 0; index < customInstrumentCount; index++) {

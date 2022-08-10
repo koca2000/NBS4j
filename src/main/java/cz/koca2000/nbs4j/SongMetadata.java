@@ -1,5 +1,7 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+
 public class SongMetadata {
 
     private String title = "";
@@ -27,7 +29,7 @@ public class SongMetadata {
      * Makes a copy of all metadata
      * @param metadata metadata to be copied
      */
-    SongMetadata(SongMetadata metadata){
+    SongMetadata(@NotNull SongMetadata metadata){
         title = metadata.title;
         author = metadata.author;
         originalAuthor = metadata.originalAuthor;
@@ -52,9 +54,8 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is null.
      */
-    public SongMetadata setTitle(String title) {
-        if (title == null)
-            throw new IllegalArgumentException("Title can not be null.");
+    @NotNull
+    public SongMetadata setTitle(@NotNull String title) {
         this.title = title;
         return this;
     }
@@ -65,9 +66,8 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is null.
      */
-    public SongMetadata setAuthor(String author) {
-        if (author == null)
-            throw new IllegalArgumentException("Author can not be null.");
+    @NotNull
+    public SongMetadata setAuthor(@NotNull String author) {
         this.author = author;
         return this;
     }
@@ -78,9 +78,8 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is null.
      */
-    public SongMetadata setOriginalAuthor(String originalAuthor) {
-        if (originalAuthor == null)
-            throw new IllegalArgumentException("Original author can not be null.");
+    @NotNull
+    public SongMetadata setOriginalAuthor(@NotNull String originalAuthor) {
         this.originalAuthor = originalAuthor;
         return this;
     }
@@ -91,9 +90,8 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is null.
      */
-    public SongMetadata setDescription(String description) {
-        if (description == null)
-            throw new IllegalArgumentException("Description can not be null.");
+    @NotNull
+    public SongMetadata setDescription(@NotNull String description) {
         this.description = description;
         return this;
     }
@@ -103,6 +101,7 @@ public class SongMetadata {
      * @param autoSave true if the OpenNoteBlockStudio should do auto-save.
      * @return this instance of {@link SongMetadata}
      */
+    @NotNull
     public SongMetadata setAutoSave(boolean autoSave) {
         this.autoSave = autoSave;
         return this;
@@ -115,6 +114,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is not in range [1; 60].
      */
+    @NotNull
     public SongMetadata setAutoSaveDuration(byte autoSaveDuration) {
         if (autoSaveDuration < 1 || autoSaveDuration > 60)
             throw new IllegalArgumentException("Auto-save duration must be in range [1; 60].");
@@ -128,6 +128,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is not in range [2; 8].
      */
+    @NotNull
     public SongMetadata setTimeSignature(byte timeSignature) {
         if (timeSignature < 2 || timeSignature > 8)
             throw new IllegalArgumentException("Time signature must be in range [2; 8].");
@@ -141,6 +142,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is negative.
      */
+    @NotNull
     public SongMetadata setMinutesSpent(int minutesSpent) {
         if (minutesSpent < 0)
             throw new IllegalArgumentException("Amount of minutes spent on project can not be negative.");
@@ -154,6 +156,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is negative.
      */
+    @NotNull
     public SongMetadata setLeftClicks(int leftClicks) {
         if (leftClicks < 0)
             throw new IllegalArgumentException("Number of left clicks can not be negative.");
@@ -167,6 +170,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is negative.
      */
+    @NotNull
     public SongMetadata setRightClicks(int rightClicks) {
         if (rightClicks < 0)
             throw new IllegalArgumentException("Number of right clicks can not be negative.");
@@ -180,6 +184,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is negative.
      */
+    @NotNull
     public SongMetadata setNoteBlocksAdded(int noteBlocksAdded) {
         if (noteBlocksAdded < 0)
             throw new IllegalArgumentException("Number of note blocks added can not be negative.");
@@ -193,6 +198,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is negative.
      */
+    @NotNull
     public SongMetadata setNoteBlocksRemoved(int noteBlocksRemoved) {
         if (noteBlocksRemoved < 0)
             throw new IllegalArgumentException("Number of note blocks removed can not be negative.");
@@ -206,9 +212,8 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is null.
      */
-    public SongMetadata setOriginalMidiFileName(String originalMidiFileName) {
-        if (originalMidiFileName == null)
-            throw new IllegalArgumentException("Original MIDI file name can not be null.");
+    @NotNull
+    public SongMetadata setOriginalMidiFileName(@NotNull String originalMidiFileName) {
         this.originalMidiFileName = originalMidiFileName;
         return this;
     }
@@ -218,6 +223,7 @@ public class SongMetadata {
      * @param loop true if song should loop; otherwise, false
      * @return this instance of {@link SongMetadata}
      */
+    @NotNull
     public SongMetadata setLoop(boolean loop) {
         this.loop = loop;
         return this;
@@ -229,6 +235,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is negative.
      */
+    @NotNull
     public SongMetadata setLoopMaxCount(byte loopMaxCount) {
         if (loopMaxCount < 0)
             throw new IllegalArgumentException("Maximum count of loops can not be negative.");
@@ -242,6 +249,7 @@ public class SongMetadata {
      * @return this instance of {@link SongMetadata}
      * @throws IllegalArgumentException if the argument is negative.
      */
+    @NotNull
     public SongMetadata setLoopStartTick(short loopStartTick) {
         if (loopStartTick < 0)
             throw new IllegalArgumentException("First tick of loop can not be negative.");
@@ -253,6 +261,7 @@ public class SongMetadata {
      * Returns the title of the song.
      * @return title
      */
+    @NotNull
     public String getTitle() {
         return title;
     }
@@ -261,6 +270,7 @@ public class SongMetadata {
      * Returns the name of the author of the song.
      * @return author's name
      */
+    @NotNull
     public String getAuthor() {
         return author;
     }
@@ -269,6 +279,7 @@ public class SongMetadata {
      * Returns the name of the author of the original song this nbs song was inspired by.
      * @return original song author's name
      */
+    @NotNull
     public String getOriginalAuthor() {
         return originalAuthor;
     }
@@ -277,6 +288,7 @@ public class SongMetadata {
      * Returns description of the song.
      * @return song's description
      */
+    @NotNull
     public String getDescription() {
         return description;
     }
@@ -349,6 +361,7 @@ public class SongMetadata {
      * Returns the name of the midi file that were used to generate this nbs song.
      * @return name of the midi file
      */
+    @NotNull
     public String getOriginalMidiFileName() {
         return originalMidiFileName;
     }

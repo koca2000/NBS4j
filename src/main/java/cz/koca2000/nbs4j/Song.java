@@ -1,5 +1,7 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
@@ -32,7 +34,7 @@ public class Song {
      * Creates deep copy of the song that is not frozen.
      * @param song song to be copied
      */
-    public Song(Song song){
+    public Song(@NotNull Song song){
         layers = new ArrayList<>();
         metadata = new SongMetadata(song.metadata);
 
@@ -63,7 +65,8 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of the {@link Song}
      */
-    public Song addCustomInstrument(CustomInstrument customInstrument){
+    @NotNull
+    public Song addCustomInstrument(@NotNull CustomInstrument customInstrument){
         throwIfSongFrozen();
 
         customInstrument.setSong(this);
@@ -78,7 +81,8 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song addLayer(Layer layer){
+    @NotNull
+    public Song addLayer(@NotNull Layer layer){
         return setLayer(layers.size(), layer);
     }
 
@@ -90,7 +94,8 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song setLayer(int index, Layer layer){
+    @NotNull
+    public Song setLayer(int index, @NotNull Layer layer){
         throwIfSongFrozen();
 
         if (index < 0)
@@ -123,6 +128,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
+    @NotNull
     public Song setLayersCount(int count){
         throwIfSongFrozen();
 
@@ -147,7 +153,8 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
-    public Song setNote(int tick, int layerIndex, Note note){
+    @NotNull
+    public Song setNote(int tick, int layerIndex, @NotNull Note note){
         throwIfSongFrozen();
 
         if (tick < 0)
@@ -164,7 +171,7 @@ public class Song {
         return this;
     }
 
-    void onNoteAdded(int tick, Note note){
+    void onNoteAdded(int tick, @NotNull Note note){
         if (!note.isCustomInstrument())
             increaseNonCustomInstrumentsCountTo(note.getInstrument() + 1);
 
@@ -186,6 +193,7 @@ public class Song {
      * @param layerIndex index of layer of the note
      * @return this instance of {@link Song}
      */
+    @NotNull
     public Song removeNote(int tick, int layerIndex){
         throwIfSongFrozen();
 
@@ -222,6 +230,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
+    @NotNull
     public Song setLength(int length){
         throwIfSongFrozen();
 
@@ -239,6 +248,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
+    @NotNull
     Song setStereo(){
         throwIfSongFrozen();
 
@@ -246,6 +256,7 @@ public class Song {
         return this;
     }
 
+    @NotNull
     Song increaseNonCustomInstrumentsCountTo(int nonCustomInstrumentsCount) {
         if (this.nonCustomInstrumentsCount < nonCustomInstrumentsCount)
             this.nonCustomInstrumentsCount = nonCustomInstrumentsCount;
@@ -260,6 +271,7 @@ public class Song {
      * @throws IllegalStateException if the song is frozen and can not be modified.
      * @return this instance of {@link Song}
      */
+    @NotNull
     public Song setTempoChange(int firstTick, float tempo){
         throwIfSongFrozen();
 
@@ -285,6 +297,7 @@ public class Song {
      * Freezes the song, its layers and notes so only its metadata can be modified.
      * @return this instance of {@link Song}
      */
+    @NotNull
     public Song freezeSong(){
         if (isSongFrozen)
             return this;
@@ -314,6 +327,7 @@ public class Song {
      * Provides {@link SongMetadata} of the Song
      * @return {@link SongMetadata}
      */
+    @NotNull
     public SongMetadata getMetadata(){
         return metadata;
     }
@@ -324,6 +338,7 @@ public class Song {
      * @throws IndexOutOfBoundsException if the index is out of range
      * @return {@link Layer} with the specified index
      */
+    @NotNull
     public Layer getLayer(int index){
         return layers.get(index);
     }
@@ -418,6 +433,7 @@ public class Song {
      * @throws IndexOutOfBoundsException if the index is not in range
      * @return {@link CustomInstrument} with specified index
      */
+    @NotNull
     public CustomInstrument getCustomInstrument(int index){
         return customInstruments.get(index);
     }
@@ -434,6 +450,7 @@ public class Song {
      * Returns unmodifiable {@link List} of song's layers.
      * @return unmodifiable {@link List} of layers
      */
+    @NotNull
     public List<Layer> getLayers(){
         return Collections.unmodifiableList(layers);
     }
@@ -442,6 +459,7 @@ public class Song {
      * Returns unmodifiable {@link List} of song's custom instruments.
      * @return unmodifiable {@link List} of custom instruments
      */
+    @NotNull
     public List<CustomInstrument> getCustomInstruments(){
         return Collections.unmodifiableList(customInstruments);
     }
@@ -451,7 +469,7 @@ public class Song {
      * @param nbsVersion version of nbs data format
      * @param stream output stream the song will be written to
      */
-    public void save(NBSVersion nbsVersion, OutputStream stream){
+    public void save(@NotNull NBSVersion nbsVersion, @NotNull OutputStream stream){
         NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), stream);
     }
 
@@ -461,7 +479,7 @@ public class Song {
      * @param file file the song will be written to
      * @throws IOException if the file can not be written
      */
-    public void save(NBSVersion nbsVersion, File file) throws IOException{
+    public void save(@NotNull NBSVersion nbsVersion, @NotNull File file) throws IOException{
         NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), Files.newOutputStream(file.toPath()));
     }
 
@@ -472,7 +490,8 @@ public class Song {
      * @throws IOException if file does not exist or can not be opened
      * @throws SongCorruptedException if an error occurred during the loading
      */
-    public static Song fromFile(File file) throws IOException {
+    @NotNull
+    public static Song fromFile(@NotNull File file) throws IOException {
         return NBSReader.readSong(Files.newInputStream(file.toPath()));
     }
 
@@ -482,7 +501,8 @@ public class Song {
      * @return loaded instance of {@link Song}
      * @throws SongCorruptedException if an error occurred during the loading
      */
-    public static Song fromStream(InputStream stream) {
+    @NotNull
+    public static Song fromStream(@NotNull InputStream stream) {
         return NBSReader.readSong(stream);
     }
 }

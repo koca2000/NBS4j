@@ -1,5 +1,8 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public class CustomInstrument {
 
     private String name = "";
@@ -16,7 +19,7 @@ public class CustomInstrument {
      * Creates a copy of the custom instrument. Copy is not frozen and does not belong to any song.
      * @param customInstrument custom instrument to be copied
      */
-    public CustomInstrument(CustomInstrument customInstrument){
+    public CustomInstrument(@NotNull CustomInstrument customInstrument){
         name = customInstrument.name;
         fileName = customInstrument.fileName;
         key = customInstrument.key;
@@ -26,7 +29,8 @@ public class CustomInstrument {
         song = null;
     }
 
-    CustomInstrument setSong(Song song){
+    @NotNull
+    CustomInstrument setSong(@NotNull Song song){
         if (this.song != null)
             throw new IllegalStateException("Custom instrument was already added to a song.");
 
@@ -41,11 +45,10 @@ public class CustomInstrument {
      * @throws IllegalArgumentException if the argument is null.
      * @throws IllegalStateException if the custom instrument is frozen and can not be modified
      */
-    public CustomInstrument setName(String name){
+    @NotNull
+    public CustomInstrument setName(@NotNull String name){
         throwIfFrozen();
 
-        if (name == null)
-            throw new IllegalArgumentException("Name can not be null");
         this.name = name;
         return this;
     }
@@ -57,11 +60,10 @@ public class CustomInstrument {
      * @throws IllegalArgumentException if the argument is null.
      * @throws IllegalStateException if the custom instrument is frozen and can not be modified
      */
-    public CustomInstrument setFileName(String fileName){
+    @NotNull
+    public CustomInstrument setFileName(@NotNull String fileName){
         throwIfFrozen();
 
-        if (fileName == null)
-            throw new IllegalArgumentException("File name can not be null");
         this.fileName = fileName;
         return this;
     }
@@ -73,6 +75,7 @@ public class CustomInstrument {
      * @throws IllegalArgumentException if the argument is not in range [0; 87] inclusive.
      * @throws IllegalStateException if the custom instrument is frozen and can not be modified
      */
+    @NotNull
     public CustomInstrument setKey(int key){
         throwIfFrozen();
 
@@ -88,6 +91,7 @@ public class CustomInstrument {
      * @return this instance of {@link CustomInstrument}
      * @throws IllegalStateException if the custom instrument is frozen and can not be modified
      */
+    @NotNull
     public CustomInstrument setShouldPressKey(boolean shouldPressKey) {
         throwIfFrozen();
 
@@ -99,6 +103,7 @@ public class CustomInstrument {
      * Returns the name of this custom instrument.
      * @return name of the instrument
      */
+    @NotNull
     public String getName() {
         return name;
     }
@@ -107,6 +112,7 @@ public class CustomInstrument {
      * Returns name of the file used in OpenNoteBlockStudio for this custom instrument.
      * @return file name
      */
+    @NotNull
     public String getFileName() {
         return fileName;
     }
@@ -117,6 +123,15 @@ public class CustomInstrument {
      */
     public int getKey() {
         return key;
+    }
+
+    /**
+     * Returns the song this custom instrument belongs to.
+     * @return {@link Song} if the custom instrument was added to a song; otherwise, null
+     */
+    @Nullable
+    public Song getSong() {
+        return song;
     }
 
     /**

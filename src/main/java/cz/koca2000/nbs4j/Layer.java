@@ -1,5 +1,8 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +28,7 @@ public final class Layer {
      * Makes a copy of the layer and its notes. Copy is not frozen.
      * @param layer layer to be copied
      */
-    public Layer(Layer layer){
+    public Layer(@NotNull Layer layer){
         name = layer.name;
         volume = layer.volume;
         panning = layer.panning;
@@ -39,7 +42,8 @@ public final class Layer {
         }
     }
 
-    Layer setSong(Song song){
+    @NotNull
+    Layer setSong(@NotNull Song song){
         if (this.song != null)
             throw new IllegalStateException("Layer was already added to a song.");
 
@@ -58,7 +62,7 @@ public final class Layer {
         this.song = null;
     }
 
-    void setNoteInternal(int tick, Note note, boolean fromSong){
+    void setNoteInternal(int tick, @NotNull Note note, boolean fromSong){
         if (!fromSong && song != null) {
             song.setNote(tick, getIndexInSong(), note);
             return;
@@ -71,7 +75,8 @@ public final class Layer {
         notes.put(tick, note);
     }
 
-    public Layer setNote(int tick, Note note){
+    @NotNull
+    public Layer setNote(int tick, @NotNull Note note){
         setNoteInternal(tick, note, false);
         return this;
     }
@@ -88,6 +93,7 @@ public final class Layer {
         }
     }
 
+    @NotNull
     public Layer removeNote(int tick){
         removeNoteInternal(tick, false);
         return this;
@@ -110,6 +116,7 @@ public final class Layer {
      * @return this instance of {@link Layer}
      * @throws IllegalStateException if the layer is frozen and can not be modified
      */
+    @NotNull
     public Layer setLocked(boolean locked){
         throwIfFrozen();
 
@@ -123,7 +130,8 @@ public final class Layer {
      * @return this instance of {@link Layer}
      * @throws IllegalStateException if the layer is frozen and can not be modified
      */
-    public Layer setName(String name){
+    @NotNull
+    public Layer setName(@NotNull String name){
         throwIfFrozen();
 
         this.name = name;
@@ -137,6 +145,7 @@ public final class Layer {
      * @throws IllegalArgumentException if the panning is out of range [-100; 100] inclusive]
      * @throws IllegalStateException if the layer is frozen and can not be modified
      */
+    @NotNull
     public Layer setPanning(int panning){
         throwIfFrozen();
 
@@ -158,6 +167,7 @@ public final class Layer {
      * @throws IllegalArgumentException if volume is outside of range [0; 100] inclusive.
      * @throws IllegalStateException if the layer is frozen and can not be modified
      */
+    @NotNull
     public Layer setVolume(int volume){
         throwIfFrozen();
 
@@ -188,6 +198,7 @@ public final class Layer {
      * Returns the display name of the layer
      * @return name of the layer
      */
+    @NotNull
     public String getName() {
         return name;
     }
@@ -221,6 +232,7 @@ public final class Layer {
      * @param tick tick of the note
      * @return {@link Note} if there is a note on the give tick; otherwise, null
      */
+    @Nullable
     public Note getNote(int tick){
         return notes.getOrDefault(tick, null);
     }
@@ -229,6 +241,7 @@ public final class Layer {
      * Returns unmodifiable {@link Map} of notes indexed by their tick.
      * @return unmodifiable {@link Map}
      */
+    @NotNull
     public Map<Integer, Note> getNotes(){
         return Collections.unmodifiableMap(notes);
     }
@@ -252,6 +265,7 @@ public final class Layer {
      * Returns the song this layer belongs to.
      * @return {@link Song} if the layer was added to a song; otherwise, null
      */
+    @Nullable
     public Song getSong() {
         return song;
     }

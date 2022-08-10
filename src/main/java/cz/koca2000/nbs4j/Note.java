@@ -1,5 +1,8 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public final class Note {
 
     public static final int NEUTRAL_PANNING = 0;
@@ -22,7 +25,7 @@ public final class Note {
      * Creates a copy of the note that is not frozen and does not belong to any song and layer.
      * @param note note to be copied
      */
-    public Note(Note note){
+    public Note(@NotNull Note note){
         instrument = note.instrument;
         isCustomInstrument = note.isCustomInstrument;
         key = note.key;
@@ -34,7 +37,7 @@ public final class Note {
         layer = null;
     }
 
-    void setLayer(Layer layer){
+    void setLayer(@NotNull Layer layer){
         if (this.layer != null)
             throw new IllegalStateException("Note was already added to a layer.");
 
@@ -51,6 +54,7 @@ public final class Note {
      * @return this instance of {@link Note}
      * @throws IllegalStateException if the note is frozen and can not be modified
      */
+    @NotNull
     public Note setInstrument(int instrument){
         return setInstrument(instrument, false);
     }
@@ -62,6 +66,7 @@ public final class Note {
      * @return this instance of {@link Note}
      * @throws IllegalStateException if the note is frozen and can not be modified
      */
+    @NotNull
     public Note setInstrument(int instrument, boolean isCustom){
         throwIfFrozen();
 
@@ -84,6 +89,7 @@ public final class Note {
      * @throws IllegalArgumentException if the key is outside of range [0; 87] inclusive.
      * @throws IllegalStateException if the note is frozen and can not be modified
      */
+    @NotNull
     public Note setKey(int key){
         throwIfFrozen();
 
@@ -101,6 +107,7 @@ public final class Note {
      * @throws IllegalArgumentException if volume is outside of range [0; 100] inclusive.
      * @throws IllegalStateException if the note is frozen and can not be modified
      */
+    @NotNull
     public Note setVolume(int volume){
         throwIfFrozen();
 
@@ -117,6 +124,7 @@ public final class Note {
      * @return this instance of {@link Note}
      * @throws IllegalStateException if the note is frozen and can not be modified
      */
+    @NotNull
     public Note setPitch(int pitch){
         throwIfFrozen();
 
@@ -131,6 +139,7 @@ public final class Note {
      * @throws IllegalArgumentException if the panning is out of range [-{@link #MAXIMUM_PANNING}; {@link #MAXIMUM_PANNING}] inclusive]
      * @throws IllegalStateException if the note is frozen and can not be modified
      */
+    @NotNull
     public Note setPanning(int panning){
         throwIfFrozen();
 
@@ -201,6 +210,7 @@ public final class Note {
      * Return the layer this note is in.
      * @return {@link Layer} if the note was added to a song; otherwise, null.
      */
+    @Nullable
     public Layer getLayer() {
         return layer;
     }

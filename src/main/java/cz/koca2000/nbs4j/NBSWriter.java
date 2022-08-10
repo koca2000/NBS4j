@@ -1,12 +1,14 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
 class NBSWriter {
 
-    public static void writeSong(Song song, int nbsVersion, OutputStream stream){
+    public static void writeSong(@NotNull Song song, int nbsVersion, @NotNull OutputStream stream){
         try {
             DataOutputStream outputStream = new DataOutputStream(stream);
 
@@ -29,7 +31,7 @@ class NBSWriter {
         }
     }
 
-    private static void writeShort(DataOutputStream stream, short num) throws IOException {
+    private static void writeShort(@NotNull DataOutputStream stream, short num) throws IOException {
         byte[] bytes = new byte[2];
         bytes[0] = (byte)(num & 0xff);
         bytes[1] = (byte)((num >> 8) & 0xff);
@@ -37,7 +39,7 @@ class NBSWriter {
         stream.writeByte(bytes[1]);
     }
 
-    private static void writeInt(DataOutputStream stream, int num) throws IOException {
+    private static void writeInt(@NotNull DataOutputStream stream, int num) throws IOException {
         byte[] bytes = new byte[4];
         bytes[0] = (byte)(num & 0xff);
         bytes[1] = (byte)((num >> 8) & 0xff);
@@ -46,7 +48,7 @@ class NBSWriter {
         stream.write(bytes);
     }
 
-    private static void writeString(DataOutputStream stream, String text) throws IOException {
+    private static void writeString(@NotNull DataOutputStream stream, @NotNull String text) throws IOException {
         byte[] textBytes = text.getBytes();
         writeInt(stream, textBytes.length);
         for (byte b : textBytes) {
@@ -54,7 +56,7 @@ class NBSWriter {
         }
     }
 
-    private static void writeHeader(DataOutputStream stream, Song song, int nbsVersion, int firstCustomInstrumentIndex) throws IOException {
+    private static void writeHeader(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion, int firstCustomInstrumentIndex) throws IOException {
         writeShort(stream, (short) 0);
 
         stream.writeByte(nbsVersion);
@@ -63,7 +65,7 @@ class NBSWriter {
             stream.writeShort(song.getSongLength());
     }
 
-    private static void writeMetadata(DataOutputStream stream, Song song, int nbsVersion) throws IOException {
+    private static void writeMetadata(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion) throws IOException {
         SongMetadata metadata = song.getMetadata();
         writeString(stream, metadata.getTitle());
         writeString(stream, metadata.getAuthor());
@@ -90,7 +92,7 @@ class NBSWriter {
         }
     }
 
-    private static void writeNotes(DataOutputStream stream, Song song, int nbsVersion, int instrumentsCount) throws IOException {
+    private static void writeNotes(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion, int instrumentsCount) throws IOException {
         int lastTick = -1;
         int tick = song.getNextNonEmptyTick(lastTick);
         while (tick != -1) {
@@ -127,7 +129,7 @@ class NBSWriter {
         writeShort(stream, (short) 0); //end of ticks
     }
 
-    private static void writeLayers(DataOutputStream stream, Song song, int nbsVersion) throws IOException {
+    private static void writeLayers(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion) throws IOException {
         for (int i = 0; i < song.getLayersCount(); i++) {
             Layer layer = song.getLayer(i);
 
@@ -143,7 +145,7 @@ class NBSWriter {
         }
     }
 
-    private static void writeCustomInstruments(DataOutputStream stream, Song song) throws IOException {
+    private static void writeCustomInstruments(@NotNull DataOutputStream stream, @NotNull Song song) throws IOException {
         stream.writeByte(song.getCustomInstrumentsCount()); //custom instruments count
 
         for (int i = 0; i < song.getCustomInstrumentsCount(); i++) {
