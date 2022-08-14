@@ -379,18 +379,39 @@ public class Song {
         if (songLength == 0)
             return 0;
 
+        songLengthInSeconds = calculateTimeInSecondsAtTick(songLength);
+        return songLengthInSeconds;
+    }
+
+    public double getTimeInSecondsAtTick(int tick){
+        if (tick <= 0 || songLength == 0)
+            return 0;
+
+        if (tick >= songLength) // tick is zero-based
+            return getSongLengthInSeconds();
+
+        return calculateTimeInSecondsAtTick(tick);
+    }
+
+    private double calculateTimeInSecondsAtTick(int tick){
         double length = 0;
         int lastTick = 0;
         float lastTempo = getTempo(0);
         for (Map.Entry<Integer, Float> tempo : tempoChanges.entrySet()){
-            if (tempo.getKey() <= 0)
+            int changeTick = tempo.getKey();
+            if (changeTick <= 0)
                 continue;
-            length += (tempo.getKey() - lastTick) * (1f / lastTempo);
+            if (changeTick > tick)
+                changeTick = tick;
+
+            length += (changeTick - lastTick) * (1f / lastTempo);
             lastTempo = tempo.getValue();
-            lastTick = tempo.getKey();
+            lastTick = changeTick;
+
+            if (changeTick == tick)
+                break;
         }
-        length += (songLength - lastTick) * (1f / lastTempo);
-        songLengthInSeconds = length;
+        length += (tick - lastTick) * (1f / lastTempo);
         return length;
     }
 
