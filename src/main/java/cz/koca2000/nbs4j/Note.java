@@ -49,7 +49,7 @@ public final class Note {
     }
 
     /**
-     * Sets index of the instrument of this note.
+     * Sets index of the non-custom instrument of this note.
      * @param instrument index of the instrument
      * @return this instance of {@link Note}
      * @throws IllegalStateException if the note is frozen and can not be modified
@@ -57,6 +57,17 @@ public final class Note {
     @NotNull
     public Note setInstrument(int instrument){
         return setInstrument(instrument, false);
+    }
+
+    /**
+     * Sets the non-custom instrument of this note.
+     * @param instrument {@link Instrument}
+     * @return this instance of {@link Note}
+     * @throws IllegalStateException if the note is frozen and can not be modified
+     */
+    @NotNull
+    public Note setInstrument(Instrument instrument){
+        return setInstrument(instrument.getId(), false);
     }
 
     /**
