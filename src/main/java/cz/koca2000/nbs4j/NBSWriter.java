@@ -62,7 +62,7 @@ class NBSWriter {
         stream.writeByte(nbsVersion);
         stream.writeByte(firstCustomInstrumentIndex);
         if (nbsVersion >= 3)
-            stream.writeShort(song.getSongLength());
+            writeShort(stream, (short)song.getSongLength());
     }
 
     private static void writeMetadata(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion) throws IOException {

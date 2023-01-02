@@ -173,6 +173,14 @@ public class SaveLoadTests {
         assertEquals(originalSong.getTempo(0), savedSong.getTempo(0));
     }
 
+    @ParameterizedTest
+    @EnumSource
+    void lengthInTicks(NBSVersion nbsVersion) {
+        Song savedSong = saveAndLoad(originalSong, nbsVersion);
+
+        assertEquals(originalSong.getSongLength(), savedSong.getSongLength());
+    }
+
     private static Song saveAndLoad(Song song, NBSVersion nbsVersion){
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         song.save(nbsVersion, outputStream);
