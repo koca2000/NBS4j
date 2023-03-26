@@ -1,6 +1,9 @@
 package cz.koca2000.nbs4j;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
 
 public class SongMetadata {
 
@@ -22,6 +25,8 @@ public class SongMetadata {
     private boolean loop = false;
     private byte loopMaxCount = 0;
     private short loopStartTick = 0;
+
+    private File sourceFile = null;
 
     public SongMetadata(){}
 
@@ -46,6 +51,7 @@ public class SongMetadata {
         loop = metadata.loop;
         loopMaxCount = metadata.loopMaxCount;
         loopStartTick = metadata.loopStartTick;
+        sourceFile = metadata.sourceFile;
     }
 
     /**
@@ -258,6 +264,14 @@ public class SongMetadata {
     }
 
     /**
+     * Sets the source file of this song
+     * @param sourceFile File from which the song was loaded
+     */
+    public void setSourceFile(@Nullable File sourceFile) {
+        this.sourceFile = sourceFile;
+    }
+
+    /**
      * Returns the title of the song.
      * @return title
      */
@@ -389,4 +403,14 @@ public class SongMetadata {
     public short getLoopStartTick() {
         return loopStartTick;
     }
+
+    /**
+     * Returns the file this Song was loaded from
+     * @return File of this song if the song was loaded from file; otherwise, null
+     */
+    @Nullable
+    public File getSourceFile() {
+        return sourceFile;
+    }
+
 }

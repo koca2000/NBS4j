@@ -513,7 +513,9 @@ public class Song {
      */
     @NotNull
     public static Song fromFile(@NotNull File file) throws IOException {
-        return NBSReader.readSong(Files.newInputStream(file.toPath()));
+        Song song = NBSReader.readSong(Files.newInputStream(file.toPath()));
+        song.getMetadata().setSourceFile(file);
+        return song;
     }
 
     /**
