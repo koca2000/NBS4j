@@ -16,33 +16,29 @@ public class SaveLoadTests {
 
     @BeforeAll
     static void prepareSong(){
-        originalSong = new Song()
-                .addLayer(new Layer()
-                        .setName("Test layer 1")
+        originalSong = new Song.Builder()
+                .addLayer(l -> l.setName("Test layer 1")
                         .setVolume(50)
                         .setPanning(50)
                         .setLocked(true))
-                .addLayer(new Layer()
-                        .setName("Test layer 2")
+                .addLayer(l -> l.setName("Test layer 2")
                         .setVolume(25)
                         .setPanning(-50))
-                .setNote(5, 0, new Note()
-                        .setInstrument(6)
+                .addNoteToLayerAtTick(0, 5, n -> n.setInstrument(6)
                         .setVolume(20)
                         .setKey(70)
                         .setPitch(10))
-                .setNote(10, 1, new Note()
-                        .setInstrument(1, true)
+                .addNoteToLayerAtTick(1, 10, n -> n.setInstrument(1, true)
                         .setVolume(40)
                         .setKey(30)
                         .setPitch(-10))
-                .addCustomInstrument(new CustomInstrument()
+                .addCustomInstrument(new CustomInstrument.Builder()
                         .setName("Custom Instrument 1")
                         .setFileName("file/name")
                         .setKey(10)
-                        .setShouldPressKey(true))
-                .setTempoChange(-1, 8.0f);
-        originalSong.freezeSong();
+                        .setShouldPressKey(true).build())
+                .setTempoChange(-1, 8.0f)
+                .build();
     }
 
     @ParameterizedTest

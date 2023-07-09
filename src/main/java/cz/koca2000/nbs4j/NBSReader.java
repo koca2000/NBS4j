@@ -13,7 +13,7 @@ class NBSReader {
 
     @NotNull
     public static Song readSong(@NotNull InputStream stream) {
-        Song song = new Song();
+        Song.Builder song = new Song.Builder();
 
         try {
             DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(stream));
@@ -32,7 +32,7 @@ class NBSReader {
         } catch (Exception e) {
             throw new SongCorruptedException(e);
         }
-        return song;
+        return song.build();
     }
 
     private static short readShort(@NotNull DataInputStream dataInputStream) throws IOException {
@@ -64,7 +64,7 @@ class NBSReader {
     }
 
     @NotNull
-    private static HeaderData readHeader(@NotNull Song song, @NotNull DataInputStream stream) throws IOException {
+    private static HeaderData readHeader(@NotNull Song.Builder song, @NotNull DataInputStream stream) throws IOException {
         HeaderData data = new HeaderData();
 
         short length = readShort(stream);
@@ -81,7 +81,7 @@ class NBSReader {
         return data;
     }
 
-    private static void readMetadata(@NotNull Song song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
+    private static void readMetadata(@NotNull Song.Builder song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
         SongMetadata metadata = song.getMetadata();
 
         metadata.setTitle(readString(stream))
@@ -105,7 +105,7 @@ class NBSReader {
         }
     }
 
-    private static void readNotes(@NotNull Song song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
+    private static void readNotes(@NotNull Song.Builder song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
         short tick = -1;
         while (true) {
             short jumpTicks = readShort(stream); // jumps till next tick
@@ -123,7 +123,7 @@ class NBSReader {
                 }
                 layer += jumpLayers;
 
-                Note note = new Note();
+                Note.Builder note = new Note.Builder();
                 byte instrument = stream.readByte();
                 if (instrument >= header.FirstCustomInstrumentIndex)
                     note.setInstrument(instrument - header.FirstCustomInstrumentIndex, true);
@@ -137,14 +137,14 @@ class NBSReader {
                             .setPitch(readShort(stream));
                 }
 
-                song.setNote(tick, layer, note);
+                song.addNoteToLayerAtTick(layer, tick, note.build());
             }
         }
     }
 
-    private static void readLayers(@NotNull Song song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
+    private static void readLayers(@NotNull Song.Builder song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
         for (int i = 0; i < song.getLayersCount(); i++) {
-            Layer layer = song.getLayer(i);
+            Layer.Builder layer = song.getLayer(i);
 
             layer.setName(readString(stream));
             if (header.Version >= 4){
@@ -158,15 +158,16 @@ class NBSReader {
         }
     }
 
-    private static void readCustomInstruments(@NotNull Song song, @NotNull DataInputStream stream) throws IOException {
+    private static void readCustomInstruments(@NotNull Song.Builder song, @NotNull DataInputStream stream) throws IOException {
         byte customInstrumentCount = stream.readByte();
 
         for (int index = 0; index < customInstrumentCount; index++) {
-            song.addCustomInstrument(new CustomInstrument()
+            song.addCustomInstrument(new CustomInstrument.Builder()
                     .setName(readString(stream))
                     .setFileName(readString(stream))
                     .setKey(stream.readByte())
-                    .setShouldPressKey(stream.readBoolean()));
+                    .setShouldPressKey(stream.readBoolean())
+                    .build());
         }
     }
 

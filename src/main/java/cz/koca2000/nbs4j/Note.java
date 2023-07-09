@@ -1,172 +1,26 @@
 package cz.koca2000.nbs4j;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public final class Note {
 
     public static final int NEUTRAL_PANNING = 0;
     public static final int MAXIMUM_PANNING = 100;
 
-    private Layer layer;
+    private final int instrument;
+    private final boolean isCustomInstrument;
+    private final int key;
+    private final int pitch;
+    private final int panning;
+    private final byte volume;
 
-    private int instrument = 0;
-    private boolean isCustomInstrument = false;
-    private int key = 45;
-    private int pitch = 0;
-    private int panning = 0;
-    private byte volume = 100;
-
-    private boolean isFrozen = false;
-
-    public Note(){}
-
-    /**
-     * Creates a copy of the note that is not frozen and does not belong to any song and layer.
-     * @param note note to be copied
-     */
-    public Note(@NotNull Note note){
-        instrument = note.instrument;
-        isCustomInstrument = note.isCustomInstrument;
-        key = note.key;
-        pitch = note.pitch;
-        panning = note.panning;
-        volume = note.volume;
-
-        isFrozen = false;
-        layer = null;
-    }
-
-    void setLayer(@NotNull Layer layer){
-        if (this.layer != null)
-            throw new IllegalStateException("Note was already added to a layer.");
-
-        this.layer = layer;
-    }
-
-    void removedFromLayer(){
-        this.layer = null;
-    }
-
-    /**
-     * Sets index of the non-custom instrument of this note.
-     * @param instrument index of the instrument
-     * @return this instance of {@link Note}
-     * @throws IllegalStateException if the note is frozen and can not be modified
-     */
-    @NotNull
-    public Note setInstrument(int instrument){
-        return setInstrument(instrument, false);
-    }
-
-    /**
-     * Sets the non-custom instrument of this note.
-     * @param instrument {@link Instrument}
-     * @return this instance of {@link Note}
-     * @throws IllegalStateException if the note is frozen and can not be modified
-     */
-    @NotNull
-    public Note setInstrument(Instrument instrument){
-        return setInstrument(instrument.getId(), false);
-    }
-
-    /**
-     * Sets index of the instrument of this note and whether it is custom instrument.
-     * @param instrument index of the instrument
-     * @param isCustom whether it is custom instrument (custom instruments have their own indexing)
-     * @return this instance of {@link Note}
-     * @throws IllegalStateException if the note is frozen and can not be modified
-     */
-    @NotNull
-    public Note setInstrument(int instrument, boolean isCustom){
-        throwIfFrozen();
-
-        if (instrument < 0)
-            throw new IllegalArgumentException("Instrument index can not be negative");
-
-        this.instrument = instrument;
-        isCustomInstrument = isCustom;
-
-        if (!isCustomInstrument && layer != null && layer.getSong() != null)
-            layer.getSong().increaseNonCustomInstrumentsCountTo(instrument + 1);
-
-        return this;
-    }
-
-    /**
-     * Sets the key of this note.
-     * @param key Value 0 is A0 and 87 is C8.
-     * @return this instance of {@link Note}
-     * @throws IllegalArgumentException if the key is outside of range [0; 87] inclusive.
-     * @throws IllegalStateException if the note is frozen and can not be modified
-     */
-    @NotNull
-    public Note setKey(int key){
-        throwIfFrozen();
-
-        if (key < 0 || key > 87)
-            throw new IllegalArgumentException("Key must be in range [0; 87] inclusive.");
-
-        this.key = (byte) key;
-        return this;
-    }
-
-    /**
-     * Sets the volume of this note.
-     * @param volume volume between 0 and 100.
-     * @return this instance of {@link Note}
-     * @throws IllegalArgumentException if volume is outside of range [0; 100] inclusive.
-     * @throws IllegalStateException if the note is frozen and can not be modified
-     */
-    @NotNull
-    public Note setVolume(int volume){
-        throwIfFrozen();
-
-        if (volume < 0 || volume > 100)
-            throw new IllegalArgumentException("Volume must be in range [0; 100] inclusive.");
-
-        this.volume = (byte) volume;
-        return this;
-    }
-
-    /**
-     * Sets the fine pitch of note.
-     * @param pitch 0 is no fine pitch; +-100 is semitone difference
-     * @return this instance of {@link Note}
-     * @throws IllegalStateException if the note is frozen and can not be modified
-     */
-    @NotNull
-    public Note setPitch(int pitch){
-        throwIfFrozen();
-
-        this.pitch = pitch;
-        return this;
-    }
-
-    /**
-     * Sets the stereo offset of the note.
-     * @param panning -100 two blocks left; 0 center; 100 two blocks right
-     * @return this instance of {@link Note}
-     * @throws IllegalArgumentException if the panning is out of range [-{@link #MAXIMUM_PANNING}; {@link #MAXIMUM_PANNING}] inclusive]
-     * @throws IllegalStateException if the note is frozen and can not be modified
-     */
-    @NotNull
-    public Note setPanning(int panning){
-        throwIfFrozen();
-
-        if (panning < -MAXIMUM_PANNING || panning > MAXIMUM_PANNING)
-            throw new IllegalArgumentException("Panning must be in range [-" + MAXIMUM_PANNING + "; " + MAXIMUM_PANNING + "] inclusive.");
-
-        this.panning = panning;
-
-        if (panning != NEUTRAL_PANNING && layer != null && layer.getSong() != null)
-            layer.getSong().setStereo();
-
-        return this;
-    }
-
-    void freeze(){
-        isFrozen = true;
+    private Note(@NotNull Builder noteBuilder){
+        instrument = noteBuilder.instrument;
+        isCustomInstrument = noteBuilder.isCustomInstrument;
+        key = noteBuilder.key;
+        pitch = noteBuilder.pitch;
+        panning = noteBuilder.panning;
+        volume = noteBuilder.volume;
     }
 
     /**
@@ -217,17 +71,129 @@ public final class Note {
         return volume;
     }
 
-    /**
-     * Return the layer this note is in.
-     * @return {@link Layer} if the note was added to a song; otherwise, null.
-     */
-    @Nullable
-    public Layer getLayer() {
-        return layer;
-    }
+    public static final class Builder {
+        private int instrument = 0;
+        private boolean isCustomInstrument = false;
+        private int key = 45;
+        private int pitch = 0;
+        private int panning = 0;
+        private byte volume = 100;
 
-    private void throwIfFrozen(){
-        if (isFrozen)
-            throw new IllegalStateException("Layer is frozen and can not be modified.");
+        public Builder() {
+        }
+
+        public Builder(@NotNull Note note) {
+            instrument = note.instrument;
+            isCustomInstrument = note.isCustomInstrument;
+            key = note.key;
+            pitch = note.pitch;
+            panning = note.panning;
+            volume = note.volume;
+        }
+
+        /**
+         * Sets index of the non-custom instrument of this note.
+         * @param instrument index of the instrument
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setInstrument(int instrument){
+            return setInstrument(instrument, false);
+        }
+
+        /**
+         * Sets the non-custom instrument of this note.
+         * @param instrument {@link Instrument}
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setInstrument(Instrument instrument){
+            return setInstrument(instrument.getId(), false);
+        }
+
+        /**
+         * Sets index of the instrument of this note and whether it is custom instrument.
+         * @param instrument index of the instrument
+         * @param isCustom whether it is custom instrument (custom instruments have their own indexing)
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setInstrument(int instrument, boolean isCustom){
+            if (instrument < 0)
+                throw new IllegalArgumentException("Instrument index can not be negative");
+
+            this.instrument = instrument;
+            isCustomInstrument = isCustom;
+
+            return this;
+        }
+
+        /**
+         * Sets the key of this note.
+         * @param key Value 0 is A0 and 87 is C8.
+         * @return this instance of {@link Builder}
+         * @throws IllegalArgumentException if the key is outside of range [0; 87] inclusive.
+         */
+        @NotNull
+        public Builder setKey(int key){
+            if (key < 0 || key > 87)
+                throw new IllegalArgumentException("Key must be in range [0; 87] inclusive.");
+
+            this.key = (byte) key;
+            return this;
+        }
+
+        /**
+         * Sets the volume of this note.
+         * @param volume volume between 0 and 100. Values greater than 100 are clipped to 100 and values lower than 0 are clipped to 0.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setVolume(int volume){
+            if (volume < 0) {
+                volume = 0;
+            }
+            if (volume > 100) {
+                volume = 100;
+            }
+
+            this.volume = (byte) volume;
+            return this;
+        }
+
+        /**
+         * Sets the fine pitch of note.
+         * @param pitch 0 is no fine pitch; +-100 is semitone difference
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setPitch(int pitch){
+            this.pitch = pitch;
+            return this;
+        }
+
+        /**
+         * Sets the stereo offset of the note.
+         * @param panning -100 two blocks left; 0 center; 100 two blocks right
+         * @return this instance of {@link Builder}
+         * @throws IllegalArgumentException if the panning is out of range [-{@link #MAXIMUM_PANNING}; {@link #MAXIMUM_PANNING}] inclusive]
+         */
+        @NotNull
+        public Builder setPanning(int panning){
+            if (panning < -MAXIMUM_PANNING || panning > MAXIMUM_PANNING)
+                throw new IllegalArgumentException("Panning must be in range [-" + MAXIMUM_PANNING + "; " + MAXIMUM_PANNING + "] inclusive.");
+
+            this.panning = panning;
+
+            return this;
+        }
+
+        /**
+         * Creates new instance of {@link Note} based on data from this builder.
+         * @return {@link Note}
+         */
+        public Note build() {
+            return new Note(this);
+        }
     }
 }

@@ -14,14 +14,15 @@ public class CopyConstructorTests {
 
     @Test
     void noteCopy(){
-        Note note = new Note()
+        Note note = new Note.Builder()
                 .setInstrument(10, true)
                 .setKey(49)
                 .setPitch(50)
                 .setPanning(10)
-                .setVolume(90);
+                .setVolume(90)
+                .build();
 
-        Note noteCopy = new Note(note);
+        Note noteCopy = new Note.Builder(note).build();
 
         assertNotEquals(note, noteCopy);
         assertEquals(note.getInstrument(), noteCopy.getInstrument());
@@ -34,15 +35,14 @@ public class CopyConstructorTests {
 
     @Test
     void layerCopy(){
-        Layer layer = new Layer()
+        Layer layer = new Layer.Builder()
                 .setName("Layer 1")
                 .setPanning(20)
                 .setVolume(40)
                 .setLocked(true)
-                .setNote(5, new Note()
-                        .setInstrument(8));
+                .build();
 
-        Layer layerCopy = new Layer(layer);
+        Layer layerCopy = new Layer.Builder(layer).build();
 
         assertNotEquals(layer, layerCopy);
         assertEquals(layer.getName(), layerCopy.getName());
@@ -50,32 +50,29 @@ public class CopyConstructorTests {
         assertEquals(layer.getVolume(), layerCopy.getVolume());
         assertEquals(layer.isLocked(), layerCopy.isLocked());
         assertEquals(layer.getNotes().size(), layerCopy.getNotes().size());
-        assertEquals(layer.getNote(5).getInstrument(), layerCopy.getNote(5).getInstrument());
     }
 
     @Test
     void songCopy(){
-        Song song = new Song()
+        Song song = new Song.Builder()
                 .setLayersCount(5)
                 .setLength(100)
-                .setNote(10, 0, new Note()
-                        .setInstrument(7))
-                .addCustomInstrument(new CustomInstrument()
-                        .setName("Custom instrument 123"));
+                .addNoteToLayerAtTick(0, 10, n -> n.setInstrument(7))
+                .getLayer(0, l -> l.setName("Layer 111"))
+                .addCustomInstrument(new CustomInstrument.Builder()
+                        .setName("Custom instrument 123")
+                        .build())
+                .build();
 
-        song.getLayer(0).setName("Layer 111");
-
-        Song songCopy = new Song(song);
+        Song songCopy = new Song.Builder(song).build();
 
         assertNotEquals(song, songCopy);
         assertEquals(song.getLayersCount(), songCopy.getLayersCount());
         assertEquals(song.getSongLength(), songCopy.getSongLength());
         assertNotEquals(song.getLayer(0), songCopy.getLayer(0));
         assertEquals(song.getLayer(0).getName(), songCopy.getLayer(0).getName());
-        assertNotEquals(song.getLayer(0).getNote(10), songCopy.getLayer(0).getNote(10));
         assertEquals(song.getLayer(0).getNote(10).getInstrument(), songCopy.getLayer(0).getNote(10).getInstrument());
         assertEquals(song.getCustomInstrumentsCount(), songCopy.getCustomInstrumentsCount());
-        assertNotEquals(song.getCustomInstrument(0), songCopy.getCustomInstrument(0));
         assertEquals(song.getCustomInstrument(0).getName(), songCopy.getCustomInstrument(0).getName());
     }
 

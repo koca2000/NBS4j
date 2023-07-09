@@ -5,322 +5,39 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class Song {
 
     private final List<Layer> layers;
-    private boolean isSongFrozen = false;
 
     private final SongMetadata metadata;
-    private boolean isStereo = false;
-    private int songLength = 0;
-    private double songLengthInSeconds = Double.NaN;
+    private final boolean isStereo;
+    private final int songLength;
+    private final double songLengthInSeconds;
 
-    private int nonCustomInstrumentsCount = 0;
-    private final List<CustomInstrument> customInstruments = new ArrayList<>();
+    private final int nonCustomInstrumentsCount;
+    private final List<CustomInstrument> customInstruments;
 
-    private final TreeSet<Integer> nonEmptyTicks = new TreeSet<>();
+    private final TreeSet<Integer> nonEmptyTicks;
 
     // <Tick, Tempo>
-    private final TreeMap<Integer, Float> tempoChanges = new TreeMap<>();
-    private int lastTick = -1;
+    private final TreeMap<Integer, Float> tempoChanges;
+    private final int lastTick;
 
-    public Song(){
-        layers = new ArrayList<>();
-        metadata = new SongMetadata();
-    }
+    private Song(@NotNull Builder builder, List<Layer> layers){
+        this.layers = layers;
+        metadata = builder.metadata;
 
-    /**
-     * Creates deep copy of the song that is not frozen.
-     * @param song song to be copied
-     */
-    public Song(@NotNull Song song){
-        layers = new ArrayList<>();
-        metadata = new SongMetadata(song.metadata);
+        isStereo = builder.isStereo;
+        songLength = builder.songLength;
+        nonCustomInstrumentsCount = builder.nonCustomInstrumentsCount;
+        customInstruments = Collections.unmodifiableList(builder.customInstruments);
+        nonEmptyTicks = builder.nonEmptyTicks;
+        tempoChanges = builder.tempoChanges;
+        lastTick = builder.lastTick;
 
-        isStereo = song.isStereo;
-        lastTick = song.lastTick;
-        songLength = song.songLength;
-        songLengthInSeconds = song.songLengthInSeconds;
-        nonCustomInstrumentsCount = song.nonCustomInstrumentsCount;
-
-        for (CustomInstrument instrument : song.customInstruments){
-            addCustomInstrument(new CustomInstrument(instrument));
-        }
-
-        for (int i = 0; i < song.getLayersCount(); i++){
-            addLayer(new Layer(song.getLayer(i)));
-        }
-
-        for (Map.Entry<Integer, Float> entry : song.tempoChanges.entrySet()){
-            setTempoChange(entry.getKey(), entry.getValue());
-        }
-
-        isSongFrozen = false;
-    }
-
-    /**
-     * Adds the custom instrument to the end of the list with custom instruments of this song.
-     * @param customInstrument {@link CustomInstrument} to be added.
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of the {@link Song}
-     */
-    @NotNull
-    public Song addCustomInstrument(@NotNull CustomInstrument customInstrument){
-        throwIfSongFrozen();
-
-        customInstrument.setSong(this);
-
-        customInstruments.add(customInstrument);
-        return this;
-    }
-
-    /**
-     * Adds the layer to the song.
-     * @param layer layer to be added
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song addLayer(@NotNull Layer layer){
-        return setLayer(layers.size(), layer);
-    }
-
-    /**
-     * Sets the layer on the specified index. Existing layer on the same index is overwritten.
-     * @param index index of the layer.
-     * @param layer layer to be placed to the specified index.
-     * @throws IndexOutOfBoundsException if the index is negative or there is a lower empty index.
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song setLayer(int index, @NotNull Layer layer){
-        throwIfSongFrozen();
-
-        if (index < 0)
-            throw new IndexOutOfBoundsException("Index can not be negative.");
-
-        if (index > layers.size())
-            throw new IndexOutOfBoundsException("There are still missing layer information for lower indexes.");
-
-        layer.setSong(this);
-        if (index == layers.size())
-            layers.add(layer);
-        else
-        {
-            layers.get(index).removedFromSong();
-            layers.set(index, layer);
-        }
-
-        if (layer.getPanning() != Layer.NEUTRAL_PANNING)
-            isStereo = true;
-
-        songLengthInSeconds = Double.NaN;
-
-        return this;
-    }
-
-    /**
-     * Creates as many {@link Layer} as needed to have specified count of layers.
-     * @param count amount of layers the song should contain
-     * @throws IllegalArgumentException if specified count is lower than number of existing layers.
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song setLayersCount(int count){
-        throwIfSongFrozen();
-
-        if (count < layers.size())
-            throw new IllegalArgumentException("Layers can not be removed.");
-
-        for (int i = layers.size(); i < count; i++){
-            layers.add(new Layer().setSong(this));
-        }
-
-        return this;
-    }
-
-    /**
-     * Adds the note to the song on specified tick and layer.
-     * If the tick is higher than song's length, song is prolonged.
-     * @param tick tick of the note
-     * @param layerIndex index of layer on which the song should be placed
-     * @param note Note to be added
-     * @throws IllegalArgumentException of tick is negative.
-     * @throws IndexOutOfBoundsException if layer index is negative or out of range.
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song setNote(int tick, int layerIndex, @NotNull Note note){
-        throwIfSongFrozen();
-
-        if (tick < 0)
-            throw new IllegalArgumentException("Tick can not be negative.");
-
-        if (layerIndex >= layers.size())
-            throw new IndexOutOfBoundsException("Layer index is out of range.");
-
-        Layer layer = layers.get(layerIndex);
-        layer.setNoteInternal(tick, note, true);
-
-        onNoteAdded(tick, note);
-
-        return this;
-    }
-
-    void onNoteAdded(int tick, @NotNull Note note){
-        if (!note.isCustomInstrument())
-            increaseNonCustomInstrumentsCountTo(note.getInstrument() + 1);
-
-        nonEmptyTicks.add(tick);
-        if (lastTick < tick)
-            lastTick = tick;
-        if (songLength <= tick)
-            songLength = tick + 1;
-
-        if (note.getPanning() != Note.NEUTRAL_PANNING)
-            isStereo = true;
-
-        songLengthInSeconds = Double.NaN;
-    }
-
-    /**
-     * Removes note on specific tick and layer.
-     * @param tick tick on which is the note to be removed
-     * @param layerIndex index of layer of the note
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song removeNote(int tick, int layerIndex){
-        throwIfSongFrozen();
-
-        Layer layer = layers.get(layerIndex);
-        layer.removeNoteInternal(tick, true);
-
-        boolean otherNoteExists = false;
-        for (int i = 0; i < layers.size(); i++){
-            if (layer.getNote(tick) != null) {
-                otherNoteExists = true;
-                break;
-            }
-        }
-        otherNoteExists |= tempoChanges.containsKey(tick);
-
-        if (!otherNoteExists) {
-            nonEmptyTicks.remove(tick);
-            if (tick == lastTick){
-                lastTick = nonEmptyTicks.isEmpty() ? -1 : nonEmptyTicks.last();
-                if (tick == songLength - 1)
-                    songLength = lastTick + 1;
-            }
-        }
-
-        songLengthInSeconds = Double.NaN;
-
-        return this;
-    }
-
-    /**
-     * Specifies the length of the song.
-     * @param length new length of the song
-     * @throws IllegalArgumentException if song with specified length would not contain all notes or tempo changes.
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song setLength(int length){
-        throwIfSongFrozen();
-
-        if (lastTick >= length)
-            throw new IllegalArgumentException("Specified song length would not contain all notes or tempo changes.");
-        songLength = length;
-
-        songLengthInSeconds = Double.NaN;
-
-        return this;
-    }
-
-    /**
-     * Specifies whether the song has notes or layers (notes or layers with panning).
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    Song setStereo(){
-        throwIfSongFrozen();
-
-        this.isStereo = true;
-        return this;
-    }
-
-    @NotNull
-    Song increaseNonCustomInstrumentsCountTo(int nonCustomInstrumentsCount) {
-        if (this.nonCustomInstrumentsCount < nonCustomInstrumentsCount)
-            this.nonCustomInstrumentsCount = nonCustomInstrumentsCount;
-        return this;
-    }
-
-    /**
-     * Specifies the change of tempo in ticks per seconds on specific tick.
-     * @param firstTick tick since the specified tempo is used.
-     * @param tempo tempo in ticks per seconds to be used from this tick on
-     * @throws IllegalArgumentException if the tempo is not positive value
-     * @throws IllegalStateException if the song is frozen and can not be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song setTempoChange(int firstTick, float tempo){
-        throwIfSongFrozen();
-
-        if (tempo <= 0)
-            throw new IllegalArgumentException("Tempo has to be positive value.");
-
-        if (firstTick >= 0)
-            nonEmptyTicks.add(firstTick);
-
-        tempoChanges.put(firstTick, tempo);
-
-        songLengthInSeconds = Double.NaN;
-
-        return this;
-    }
-
-    private void throwIfSongFrozen(){
-        if (isSongFrozen)
-            throw new IllegalStateException("Song is frozen and can not be modified.");
-    }
-
-    /**
-     * Freezes the song, its layers and notes so only its metadata can be modified.
-     * @return this instance of {@link Song}
-     */
-    @NotNull
-    public Song freezeSong(){
-        if (isSongFrozen)
-            return this;
-
-        for (Layer layer : layers) {
-            layer.freeze();
-        }
-
-        for (CustomInstrument instrument : customInstruments){
-            instrument.freeze();
-        }
-
-        isSongFrozen = true;
-
-        return this;
-    }
-
-    /**
-     * Checks if the song is unmodifiable except the metadata.
-     * @return true if the song is frozen; otherwise, false
-     */
-    public boolean isSongFrozen(){
-        return isSongFrozen;
+        songLengthInSeconds = songLength != 0 ? calculateTimeInSecondsAtTick(songLength) : 0;
     }
 
     /**
@@ -368,21 +85,18 @@ public class Song {
     }
 
     /**
-     * Calculates and returns the length of the song in seconds with all tempo changes applied.
-     * If the song was not changed since last calculation, cached value is used.
+     * Returns the length of the song in seconds with all tempo changes applied.
      * @return length in seconds
      */
     public double getSongLengthInSeconds(){
-        if (!Double.isNaN(songLengthInSeconds))
-            return songLengthInSeconds;
-
-        if (songLength == 0)
-            return 0;
-
-        songLengthInSeconds = calculateTimeInSecondsAtTick(songLength);
         return songLengthInSeconds;
     }
 
+    /**
+     * Returns the time in seconds at the given tick with all tempo changes applied.
+     * @param tick Tick in question
+     * @return time in seconds
+     */
     public double getTimeInSecondsAtTick(int tick){
         if (tick <= 0 || songLength == 0)
             return 0;
@@ -436,7 +150,8 @@ public class Song {
     public float getTempo(int tick){
         if (tempoChanges.size() == 0)
             return 10;
-        return tempoChanges.floorEntry(tick).getValue();
+        Map.Entry<Integer, Float> floorEntry = tempoChanges.floorEntry(tick);
+        return floorEntry != null ? floorEntry.getValue() : 10;
     }
 
     /**
@@ -473,7 +188,7 @@ public class Song {
      */
     @NotNull
     public List<Layer> getLayers(){
-        return Collections.unmodifiableList(layers);
+        return layers;
     }
 
     /**
@@ -482,7 +197,7 @@ public class Song {
      */
     @NotNull
     public List<CustomInstrument> getCustomInstruments(){
-        return Collections.unmodifiableList(customInstruments);
+        return customInstruments;
     }
 
     /**
@@ -527,5 +242,328 @@ public class Song {
     @NotNull
     public static Song fromStream(@NotNull InputStream stream) {
         return NBSReader.readSong(stream);
+    }
+
+    public static class Builder {
+        private final List<Layer.Builder> layerBuilders = new ArrayList<>();
+        private final SongMetadata metadata;
+
+        private boolean isStereo = false;
+        private int songLength = 0;
+
+        private int nonCustomInstrumentsCount = 0;
+        private final List<CustomInstrument> customInstruments = new ArrayList<>();
+
+        private final TreeSet<Integer> nonEmptyTicks = new TreeSet<>();
+
+        // <Tick, Tempo>
+        private final TreeMap<Integer, Float> tempoChanges = new TreeMap<>();
+        private int lastTick = -1;
+
+        public Builder() {
+            metadata = new SongMetadata();
+        }
+
+        /**
+         * Initialize the builder with data from the given song.
+         * @param originalSong song to be copied
+         */
+        public Builder(@NotNull Song originalSong) {
+            metadata = new SongMetadata(originalSong.metadata);
+
+            isStereo = originalSong.isStereo;
+            lastTick = originalSong.lastTick;
+            songLength = originalSong.songLength;
+            nonCustomInstrumentsCount = originalSong.nonCustomInstrumentsCount;
+
+            for (CustomInstrument instrument : originalSong.customInstruments){
+                addCustomInstrument(instrument);
+            }
+
+            for (int i = 0; i < originalSong.getLayersCount(); i++){
+                addLayerCopy(originalSong.getLayer(i), l -> {});
+            }
+
+            for (Map.Entry<Integer, Float> entry : originalSong.tempoChanges.entrySet()){
+                setTempoChange(entry.getKey(), entry.getValue());
+            }
+        }
+
+        /**
+         * Adds the custom instrument to the end of the list with custom instruments of this song.
+         * @param customInstrument {@link CustomInstrument} to be added.
+         * @return this instance of the {@link Builder}
+         */
+        @NotNull
+        public Song.Builder addCustomInstrument(@NotNull CustomInstrument customInstrument){
+            customInstruments.add(customInstrument);
+            return this;
+        }
+
+        /**
+         * Adds a new layer to the song.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder addLayer(Consumer<Layer.Builder> layerBuilderCall){
+            Layer.Builder layerBuilder = new Layer.Builder();
+            layerBuilders.add(layerBuilder);
+
+            layerBuilderCall.accept(layerBuilder);
+            return this;
+        }
+
+        /**
+         * Makes a copy of the given layer and adds it to the song.
+         * @param layer Layer to be added
+         * @param layerBuilderCall Consumer with {@link Layer.Builder} of the added {@link Layer}.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder addLayerCopy(Layer layer, Consumer<Layer.Builder> layerBuilderCall){
+            Layer.Builder layerBuilder = new Layer.Builder(layer);
+            layerBuilders.add(layerBuilder);
+
+            for (Map.Entry<Integer, Note> noteEntry : layer.getNotes().entrySet()){
+                onNoteAdded(noteEntry.getKey(), noteEntry.getValue());
+            }
+
+            layerBuilderCall.accept(layerBuilder);
+            return this;
+        }
+
+        /**
+         * Returns the {@link Layer.Builder} of the layer at the given index
+         * @param index Index of the layer
+         * @param layerBuilderCall Consumer with {@link Layer.Builder} of the specified Layer
+         * @return this instance of {@link Builder}
+         * @throws IndexOutOfBoundsException if the index is out of bounds
+         */
+        @NotNull
+        public Song.Builder getLayer(int index, Consumer<Layer.Builder> layerBuilderCall) {
+            if (index < 0 || index > layerBuilders.size()) {
+                throw new IndexOutOfBoundsException("The index is out of bounds.");
+            }
+
+            layerBuilderCall.accept(layerBuilders.get(index));
+            return this;
+        }
+
+        /**
+         * Returns the {@link Layer.Builder} of the layer at the given index
+         * @param index Index of the layer
+         * @return {@link Layer.Builder} of the specified Layer
+         */
+        @NotNull
+        public Layer.Builder getLayer(int index) {
+            if (index < 0 || index > layerBuilders.size()) {
+                throw new IndexOutOfBoundsException("The index is out of bounds.");
+            }
+
+            return layerBuilders.get(index);
+        }
+
+        /**
+         * Creates as many {@link Layer} as needed to have specified count of layers.
+         * @param count amount of layers the song should contain
+         * @throws IllegalArgumentException if specified count is lower than number of existing layers.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder setLayersCount(int count){
+            if (count < layerBuilders.size())
+                throw new IllegalArgumentException("Layers can not be removed.");
+
+            for (int i = layerBuilders.size(); i < count; i++){
+                int index = i;
+                addLayer(l -> l.setName("Layer #" + index));
+            }
+
+            return this;
+        }
+
+        /**
+         * Adds the note to the song on specified tick and layer.
+         * If the tick is higher than song's length, song is prolonged.
+         * @param tick tick of the note
+         * @param layerIndex index of layer on which the song should be placed
+         * @param noteBuilderCall {@link Note.Builder} of the added note
+         * @throws IllegalArgumentException of tick is negative.
+         * @throws IndexOutOfBoundsException if layer index is negative.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder addNoteToLayerAtTick(int layerIndex, int tick, Consumer<Note.Builder> noteBuilderCall){
+            if (tick < 0)
+                throw new IllegalArgumentException("Tick can not be negative.");
+
+            Note.Builder noteBuilder = new Note.Builder();
+            noteBuilderCall.accept(noteBuilder);
+
+            Note note = noteBuilder.build();
+            addNoteToLayerAtTick(layerIndex, tick, note);
+
+            return this;
+        }
+
+        /**
+         * Adds the note to the song on specified tick and layer.
+         * If the tick is higher than song's length, song is prolonged.
+         * @param tick tick of the note
+         * @param layerIndex index of layer on which the song should be placed
+         * @param note added {@link Note}
+         * @throws IllegalArgumentException of tick is negative.
+         * @throws IndexOutOfBoundsException if layer index is negative.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder addNoteToLayerAtTick(int layerIndex, int tick, Note note){
+            if (tick < 0)
+                throw new IllegalArgumentException("Tick can not be negative.");
+
+            if (layerIndex >= layerBuilders.size())
+                setLayersCount(layerIndex + 1);
+
+            Layer.Builder layer = layerBuilders.get(layerIndex);
+
+            layer.setNoteInternal(tick, note);
+            onNoteAdded(tick, note);
+
+            return this;
+        }
+
+        void onNoteAdded(int tick, @NotNull Note note){
+            if (!note.isCustomInstrument())
+                increaseNonCustomInstrumentsCountTo(note.getInstrument() + 1);
+
+            nonEmptyTicks.add(tick);
+            if (lastTick < tick)
+                lastTick = tick;
+            if (songLength <= tick)
+                songLength = tick + 1;
+
+            if (note.getPanning() != Note.NEUTRAL_PANNING)
+                isStereo = true;
+        }
+
+        /**
+         * Removes note on specific tick and layer.
+         * @param tick tick on which is the note to be removed
+         * @param layerIndex index of layer of the note
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder removeNote(int tick, int layerIndex){
+            Layer.Builder layer = layerBuilders.get(layerIndex);
+            layer.removeNoteInternal(tick);
+
+            boolean otherNoteExists = false;
+            for (int i = 0; i < layerBuilders.size(); i++){
+                if (layer.getNote(tick) != null) {
+                    otherNoteExists = true;
+                    break;
+                }
+            }
+            otherNoteExists |= tempoChanges.containsKey(tick);
+
+            if (!otherNoteExists) {
+                nonEmptyTicks.remove(tick);
+                if (tick == lastTick){
+                    lastTick = nonEmptyTicks.isEmpty() ? -1 : nonEmptyTicks.last();
+                    if (tick == songLength - 1)
+                        songLength = lastTick + 1;
+                }
+            }
+
+            return this;
+        }
+
+        /**
+         * Specifies the length of the song.
+         * @param length new length of the song
+         * @throws IllegalArgumentException if song with specified length would not contain all notes or tempo changes.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder setLength(int length){
+            if (lastTick >= length) {
+                throw new IllegalArgumentException("Specified song length would not contain all notes or tempo changes.");
+            }
+            songLength = length;
+
+            return this;
+        }
+
+        /**
+         * Specifies whether the song has notes or layers (notes or layers with panning).
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        Song.Builder setStereo(){
+            isStereo = true;
+            return this;
+        }
+
+        @NotNull
+        Song.Builder increaseNonCustomInstrumentsCountTo(int count) {
+            if (nonCustomInstrumentsCount < count)
+                nonCustomInstrumentsCount = count;
+            return this;
+        }
+
+        /**
+         * Specifies the change of tempo in ticks per seconds on specific tick.
+         * @param firstTick tick since the specified tempo is used.
+         * @param tempo tempo in ticks per seconds to be used from this tick on
+         * @throws IllegalArgumentException if the tempo is not positive value
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Song.Builder setTempoChange(int firstTick, float tempo){
+            if (tempo <= 0)
+                throw new IllegalArgumentException("Tempo has to be positive value.");
+
+            if (firstTick >= 0)
+                nonEmptyTicks.add(firstTick);
+
+            tempoChanges.put(firstTick, tempo);
+
+            return this;
+        }
+
+        /**
+         * Provides {@link SongMetadata} of the Song
+         * @return {@link SongMetadata}
+         */
+        @NotNull
+        public SongMetadata getMetadata(){
+            return metadata;
+        }
+
+        /**
+         * Returns count of layers
+         * @return count of layers
+         */
+        public int getLayersCount(){
+            return layerBuilders.size();
+        }
+
+        /**
+         * Creates new instance of {@link Song} based on data from this builder.
+         * @return {@link Song}
+         */
+        public Song build() {
+            List<Layer> layers = new ArrayList<>();
+            for (Layer.Builder layerBuilder : layerBuilders) {
+                Layer layer = layerBuilder.build();
+                layers.add(layer);
+
+                if (layer.getPanning() != Layer.NEUTRAL_PANNING) {
+                    setStereo();
+                }
+            }
+
+            return new Song(this, Collections.unmodifiableList(layers));
+        }
     }
 }

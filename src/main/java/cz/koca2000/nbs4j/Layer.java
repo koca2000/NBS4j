@@ -12,170 +12,23 @@ public final class Layer {
     public static final int NEUTRAL_PANNING = 0;
     public static final int MAXIMUM_PANNING = 100;
 
-    private final HashMap<Integer, Note> notes = new HashMap<>();
+    private final Map<Integer, Note> notes;
 
-    private String name = "";
-    private int volume = 100;
-    private int panning = 0;
-    private boolean isLocked = false;
-
-    private Song song;
-    private boolean isFrozen = false;
-
-    public Layer(){}
+    private final String name;
+    private final int volume;
+    private final int panning;
+    private final boolean isLocked;
 
     /**
      * Makes a copy of the layer and its notes. Copy is not frozen.
-     * @param layer layer to be copied
+     * @param builder layer to be copied
      */
-    public Layer(@NotNull Layer layer){
-        name = layer.name;
-        volume = layer.volume;
-        panning = layer.panning;
-        isLocked = layer.isLocked;
-
-        isFrozen = false;
-        song = null;
-
-        for (Map.Entry<Integer, Note> noteEntry : layer.notes.entrySet()){
-            setNote(noteEntry.getKey(), new Note(noteEntry.getValue()));
-        }
-    }
-
-    @NotNull
-    Layer setSong(@NotNull Song song){
-        if (this.song != null)
-            throw new IllegalStateException("Layer was already added to a song.");
-
-        this.song = song;
-
-        if (!notes.isEmpty()){
-            for (Map.Entry<Integer, Note> noteEntry : notes.entrySet()){
-                song.onNoteAdded(noteEntry.getKey(), noteEntry.getValue());
-            }
-        }
-
-        return this;
-    }
-
-    void removedFromSong(){
-        this.song = null;
-    }
-
-    void setNoteInternal(int tick, @NotNull Note note, boolean fromSong){
-        if (!fromSong && song != null) {
-            song.setNote(tick, getIndexInSong(), note);
-            return;
-        }
-
-        note.setLayer(this);
-        if (notes.containsKey(tick)){
-            notes.get(tick).removedFromLayer();
-        }
-        notes.put(tick, note);
-    }
-
-    @NotNull
-    public Layer setNote(int tick, @NotNull Note note){
-        setNoteInternal(tick, note, false);
-        return this;
-    }
-
-    void removeNoteInternal(int tick, boolean fromSong){
-        if (!fromSong && song != null) {
-            song.removeNote(tick, getIndexInSong());
-            return;
-        }
-
-        if (notes.containsKey(tick)){
-            notes.get(tick).removedFromLayer();
-            notes.remove(tick);
-        }
-    }
-
-    @NotNull
-    public Layer removeNote(int tick){
-        removeNoteInternal(tick, false);
-        return this;
-    }
-
-    void freeze(){
-        if (isFrozen)
-            return;
-
-        for (Note note : notes.values()){
-            note.freeze();
-        }
-
-        isFrozen = true;
-    }
-
-    /**
-     * Sets whether the layer is locked in OpenNoteBlockStudio
-     * @param locked whether the layer is locked
-     * @return this instance of {@link Layer}
-     * @throws IllegalStateException if the layer is frozen and can not be modified
-     */
-    @NotNull
-    public Layer setLocked(boolean locked){
-        throwIfFrozen();
-
-        this.isLocked = locked;
-        return this;
-    }
-
-    /**
-     * Sets the display name of the layer.
-     * @param name name of the layer
-     * @return this instance of {@link Layer}
-     * @throws IllegalStateException if the layer is frozen and can not be modified
-     */
-    @NotNull
-    public Layer setName(@NotNull String name){
-        throwIfFrozen();
-
-        this.name = name;
-        return this;
-    }
-
-    /**
-     * Sets the stereo offset of the layer.
-     * @param panning -100 two blocks left; 0 center; 100 two blocks right
-     * @return this instance of {@link Layer}
-     * @throws IllegalArgumentException if the panning is out of range [-100; 100] inclusive]
-     * @throws IllegalStateException if the layer is frozen and can not be modified
-     */
-    @NotNull
-    public Layer setPanning(int panning){
-        throwIfFrozen();
-
-        if (panning < -MAXIMUM_PANNING || panning > MAXIMUM_PANNING)
-            throw new IllegalArgumentException("Panning must be in range [-" + MAXIMUM_PANNING + "; " + MAXIMUM_PANNING +"] inclusive.");
-
-        this.panning = panning;
-
-        if (song != null && panning != NEUTRAL_PANNING)
-            song.setStereo();
-
-        return this;
-    }
-
-    /**
-     * Sets the volume of this layer.
-     * @param volume volume between 0 and 100.
-     * @return this instance of {@link Layer}
-     * @throws IllegalArgumentException if volume is outside of range [0; 100] inclusive.
-     * @throws IllegalStateException if the layer is frozen and can not be modified
-     */
-    @NotNull
-    public Layer setVolume(int volume){
-        throwIfFrozen();
-
-        if (volume < 0 || volume > 100)
-            throw new IllegalArgumentException("Volume must be in range [0; 100] inclusive.");
-
-        this.volume = volume;
-        return this;
+    private Layer(@NotNull Builder builder){
+        name = builder.name;
+        volume = builder.volume;
+        panning = builder.panning;
+        isLocked = builder.isLocked;
+        notes = Collections.unmodifiableMap(builder.notes);
     }
 
     /**
@@ -220,14 +73,6 @@ public final class Layer {
     }
 
     /**
-     * Returns whether the layer is frozen and can not be modified.
-     * @return true if the layer is frozen; otherwise, false
-     */
-    public boolean isFrozen(){
-        return isFrozen;
-    }
-
-    /**
      * Returns note on specific tick on this layer.
      * @param tick tick of the note
      * @return {@link Note} if there is a note on the give tick; otherwise, null
@@ -243,35 +88,116 @@ public final class Layer {
      */
     @NotNull
     public Map<Integer, Note> getNotes(){
-        return Collections.unmodifiableMap(notes);
+        return notes;
     }
 
-    /**
-     * Returns index of this layer in its song.
-     * @return index
-     * @throws IllegalStateException if layer is not in any song.
-     */
-    public int getIndexInSong(){
-        if (song == null)
-            throw new IllegalStateException("Layer is not in any song.");
-        for (int i = 0; i < song.getLayersCount(); i++){
-            if (song.getLayer(i) == this)
-                return i;
+    public static final class Builder {
+        private final HashMap<Integer, Note> notes;
+        private String name = "";
+        private int volume = 100;
+        private int panning = 0;
+        private boolean isLocked = false;
+
+        public Builder() {
+            notes = new HashMap<>();
         }
-        throw new IllegalStateException("Layer is not in any song.");
-    }
 
-    /**
-     * Returns the song this layer belongs to.
-     * @return {@link Song} if the layer was added to a song; otherwise, null
-     */
-    @Nullable
-    public Song getSong() {
-        return song;
-    }
+        public Builder(Layer layer) {
+            notes = new HashMap<>(layer.notes);
+            name = layer.name;
+            volume = layer.volume;
+            panning = layer.panning;
+            isLocked = layer.isLocked;
+        }
 
-    private void throwIfFrozen(){
-        if (isFrozen)
-            throw new IllegalStateException("Layer is frozen and can not be modified.");
+        /**
+         * Puts the note to the layer at the given tick.
+         * @param tick Tick of the note
+         * @param note Note to be added
+         */
+        void setNoteInternal(int tick, @NotNull Note note){
+            notes.put(tick, note);
+        }
+
+        /**
+         * Removes the note on the given tick from the layer
+         * @param tick Tick on which the note will be removed
+         */
+        void removeNoteInternal(int tick) {
+            notes.remove(tick);
+        }
+
+        /**
+         * Sets whether the layer is locked in OpenNoteBlockStudio
+         * @param locked whether the layer is locked
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setLocked(boolean locked){
+            this.isLocked = locked;
+            return this;
+        }
+
+        /**
+         * Sets the display name of the layer.
+         * @param name name of the layer
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setName(@NotNull String name){
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * Sets the stereo offset of the layer.
+         * @param panning -100 two blocks left; 0 center; 100 two blocks right
+         * @return this instance of {@link Builder}
+         * @throws IllegalArgumentException if the panning is out of range [-100; 100] inclusive]
+         */
+        @NotNull
+        public Builder setPanning(int panning){
+            if (panning < -MAXIMUM_PANNING || panning > MAXIMUM_PANNING)
+                throw new IllegalArgumentException("Panning must be in range [-" + MAXIMUM_PANNING + "; " + MAXIMUM_PANNING +"] inclusive.");
+
+            this.panning = panning;
+
+            return this;
+        }
+
+        /**
+         * Sets the volume of this layer.
+         * @param volume volume between 0 and 100. Values greater than 100 are clipped to 100 and values lower than 0 are clipped to 0.
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder setVolume(int volume){
+            if (volume < 0) {
+                volume = 0;
+            }
+            if (volume > 100) {
+                volume = 100;
+            }
+
+            this.volume = volume;
+            return this;
+        }
+
+        /**
+         * Returns note on the given tick
+         * @param tick Tick of the note
+         * @return {@link Note} or null
+         */
+        Note getNote(int tick){
+            return notes.getOrDefault(tick, null);
+        }
+
+        /**
+         * Creates new instance of {@link Layer} based on data from this builder.
+         * @return {@link Layer}
+         */
+        public Layer build() {
+            return new Layer(this);
+        }
     }
 }
