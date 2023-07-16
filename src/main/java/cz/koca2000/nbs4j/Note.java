@@ -14,6 +14,8 @@ public final class Note {
     private final int panning;
     private final byte volume;
 
+    private Layer layer = null;
+
     private Note(@NotNull Builder noteBuilder){
         instrument = noteBuilder.instrument;
         isCustomInstrument = noteBuilder.isCustomInstrument;
@@ -21,6 +23,18 @@ public final class Note {
         pitch = noteBuilder.pitch;
         panning = noteBuilder.panning;
         volume = noteBuilder.volume;
+    }
+
+    /**
+     * Sets the {@link Layer} during the initialization.
+     * @param song Layer to which this note belongs
+     * @throws IllegalStateException If the method was already called before.
+     */
+    void setLayer(@NotNull Layer song) {
+        if (this.layer != null) {
+            throw new IllegalStateException("Note already has the layer set.");
+        }
+        this.layer = song;
     }
 
     /**
@@ -71,6 +85,14 @@ public final class Note {
         return volume;
     }
 
+    /**
+     * Returns the {@link Layer} to which the note belongs
+     * @return {@link Layer}
+     */
+    public @NotNull Layer getLayer() {
+        return layer;
+    }
+
     public static final class Builder {
         private int instrument = 0;
         private boolean isCustomInstrument = false;
@@ -79,10 +101,10 @@ public final class Note {
         private int panning = 0;
         private byte volume = 100;
 
-        public Builder() {
+        Builder() {
         }
 
-        public Builder(@NotNull Note note) {
+        Builder(@NotNull Note note) {
             instrument = note.instrument;
             isCustomInstrument = note.isCustomInstrument;
             key = note.key;
@@ -189,10 +211,58 @@ public final class Note {
         }
 
         /**
+         * Returns the index of the instrument of this note. To recognize whether it is custom instrument use {@link #isCustomInstrument()}
+         * @return index of the instrument
+         */
+        public int getInstrument() {
+            return instrument;
+        }
+
+        /**
+         * Returns whether the note uses custom instrument.
+         * @return true if used instrument is custom instrument; otherwise, false
+         */
+        public boolean isCustomInstrument() {
+            return isCustomInstrument;
+        }
+
+        /**
+         * Returns the key of the note.
+         * @return value in range [0; 87]; 0 is A0 and 87 is C8.
+         */
+        public int getKey() {
+            return key;
+        }
+
+        /**
+         * Returns fine pitch of the note.
+         * @return 0 is no fine pitch; +-100 is semitone difference
+         */
+        public int getPitch() {
+            return pitch;
+        }
+
+        /**
+         * Returns value of stereo offset of this note.
+         * @return value in range [-100; 100]; -100 two blocks left; 0 center; 100 two blocks right
+         */
+        public int getPanning() {
+            return panning;
+        }
+
+        /**
+         * Returns the volume of this note.
+         * @return value in range [0; 100]
+         */
+        public byte getVolume() {
+            return volume;
+        }
+
+        /**
          * Creates new instance of {@link Note} based on data from this builder.
          * @return {@link Note}
          */
-        public Note build() {
+        @NotNull Note build() {
             return new Note(this);
         }
     }

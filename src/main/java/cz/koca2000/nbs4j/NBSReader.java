@@ -123,21 +123,38 @@ class NBSReader {
                 }
                 layer += jumpLayers;
 
-                Note.Builder note = new Note.Builder();
                 byte instrument = stream.readByte();
-                if (instrument >= header.FirstCustomInstrumentIndex)
-                    note.setInstrument(instrument - header.FirstCustomInstrumentIndex, true);
-                else
-                    note.setInstrument(instrument);
 
-                note.setKey(stream.readByte());
-                if (header.Version >= 4) {
-                    note.setVolume(stream.readByte())
-                            .setPanning(100 - stream.readUnsignedByte()) // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
-                            .setPitch(readShort(stream));
+                int instrumentId;
+                boolean isCustomInstrument;
+                if (instrument >= header.FirstCustomInstrumentIndex){
+                    instrumentId = instrument - header.FirstCustomInstrumentIndex;
+                    isCustomInstrument = true;
+                } else {
+                    instrumentId = instrument;
+                    isCustomInstrument = false;
                 }
 
-                song.addNoteToLayerAtTick(layer, tick, note.build());
+                byte key = stream.readByte();
+                byte volume;
+                int panning;
+                short pitch;
+                if (header.Version >= 4) {
+                    volume = stream.readByte();
+                    panning = 100 - stream.readUnsignedByte(); // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
+                    pitch = readShort(stream);
+                } else {
+                    volume = 100;
+                    panning = 0;
+                    pitch = 0;
+                }
+
+                song.addNoteToLayerAtTick(layer, tick,
+                        note -> note.setInstrument(instrumentId, isCustomInstrument)
+                                .setKey(key)
+                                .setVolume(volume)
+                                .setPanning(panning)
+                                .setPitch(pitch));
             }
         }
     }

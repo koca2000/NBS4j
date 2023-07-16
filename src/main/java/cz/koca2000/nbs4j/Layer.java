@@ -12,23 +12,37 @@ public final class Layer {
     public static final int NEUTRAL_PANNING = 0;
     public static final int MAXIMUM_PANNING = 100;
 
-    private final Map<Integer, Note> notes;
+    private final Map<Long, Note> notes;
 
     private final String name;
     private final int volume;
     private final int panning;
     private final boolean isLocked;
 
+    private Song song = null;
+
     /**
      * Makes a copy of the layer and its notes. Copy is not frozen.
      * @param builder layer to be copied
      */
-    private Layer(@NotNull Builder builder){
+    private Layer(@NotNull Builder builder, @NotNull Map<Long, Note> notes){
         name = builder.name;
         volume = builder.volume;
         panning = builder.panning;
         isLocked = builder.isLocked;
-        notes = Collections.unmodifiableMap(builder.notes);
+        this.notes = Collections.unmodifiableMap(notes);
+    }
+
+    /**
+     * Sets the {@link Song} during the initialization.
+     * @param song Song to which this layer belongs
+     * @throws IllegalStateException If the method was already called before.
+     */
+    void setSong(@NotNull Song song) {
+        if (this.song != null) {
+            throw new IllegalStateException("Layer already has the song set.");
+        }
+        this.song = song;
     }
 
     /**
@@ -78,7 +92,7 @@ public final class Layer {
      * @return {@link Note} if there is a note on the give tick; otherwise, null
      */
     @Nullable
-    public Note getNote(int tick){
+    public Note getNote(long tick){
         return notes.getOrDefault(tick, null);
     }
 
@@ -87,27 +101,37 @@ public final class Layer {
      * @return unmodifiable {@link Map}
      */
     @NotNull
-    public Map<Integer, Note> getNotes(){
+    public Map<Long, Note> getNotes(){
         return notes;
     }
 
+    /**
+     * Returns the {@link Song} to which this layer belongs.
+     * @return {@link Song}
+     */
+    public @NotNull Song getSong() {
+        return song;
+    }
+
     public static final class Builder {
-        private final HashMap<Integer, Note> notes;
+        private final HashMap<Long, Note.Builder> notes = new HashMap<>();
         private String name = "";
         private int volume = 100;
         private int panning = 0;
         private boolean isLocked = false;
 
-        public Builder() {
-            notes = new HashMap<>();
+        Builder() {
         }
 
-        public Builder(Layer layer) {
-            notes = new HashMap<>(layer.notes);
+        Builder(@NotNull Layer layer) {
             name = layer.name;
             volume = layer.volume;
             panning = layer.panning;
             isLocked = layer.isLocked;
+
+            for (Map.Entry<Long, Note> entry : layer.notes.entrySet()) {
+                setNoteInternal(entry.getKey(), new Note.Builder(entry.getValue()));
+            }
         }
 
         /**
@@ -115,7 +139,7 @@ public final class Layer {
          * @param tick Tick of the note
          * @param note Note to be added
          */
-        void setNoteInternal(int tick, @NotNull Note note){
+        void setNoteInternal(long tick, @NotNull Note.Builder note){
             notes.put(tick, note);
         }
 
@@ -123,7 +147,7 @@ public final class Layer {
          * Removes the note on the given tick from the layer
          * @param tick Tick on which the note will be removed
          */
-        void removeNoteInternal(int tick) {
+        void removeNoteInternal(long tick) {
             notes.remove(tick);
         }
 
@@ -188,16 +212,34 @@ public final class Layer {
          * @param tick Tick of the note
          * @return {@link Note} or null
          */
-        Note getNote(int tick){
+        Note.Builder getNote(long tick){
             return notes.getOrDefault(tick, null);
+        }
+
+        /**
+         * Returns map of notes in the layer
+         * @return Map with tick as a key and {@link Note.Builder} as value
+         */
+        @NotNull
+        Map<Long, Note.Builder> getNotes(){
+            return notes;
         }
 
         /**
          * Creates new instance of {@link Layer} based on data from this builder.
          * @return {@link Layer}
          */
-        public Layer build() {
-            return new Layer(this);
+        @NotNull Layer build() {
+            HashMap<Long, Note> builtNotes = new HashMap<>();
+            for (Map.Entry<Long, Note.Builder> noteEntry : notes.entrySet()) {
+                builtNotes.put(noteEntry.getKey(), noteEntry.getValue().build());
+            }
+            Layer layer = new Layer(this, builtNotes);
+
+            for (Note note : builtNotes.values()) {
+                note.setLayer(layer);
+            }
+            return layer;
         }
     }
 }

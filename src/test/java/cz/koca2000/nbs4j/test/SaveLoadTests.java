@@ -91,8 +91,8 @@ public class SaveLoadTests {
         Song savedSong = saveAndLoad(originalSong, nbsVersion);
 
         assertEquals(originalSong.getLayersCount(), savedSong.getLayersCount());
-        int nextTickOriginal = originalSong.getNextNonEmptyTick(-1);
-        int nextTickSaved = savedSong.getNextNonEmptyTick(-1);
+        long nextTickOriginal = originalSong.getNextNonEmptyTick(-1);
+        long nextTickSaved = savedSong.getNextNonEmptyTick(-1);
 
         while (nextTickOriginal == nextTickSaved && nextTickOriginal != -1) {
             for (int i = 0; i < originalSong.getLayersCount(); i++) {

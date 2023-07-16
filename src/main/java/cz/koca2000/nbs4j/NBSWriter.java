@@ -93,8 +93,8 @@ class NBSWriter {
     }
 
     private static void writeNotes(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion, int instrumentsCount) throws IOException {
-        int lastTick = -1;
-        int tick = song.getNextNonEmptyTick(lastTick);
+        long lastTick = -1;
+        long tick = song.getNextNonEmptyTick(lastTick);
         while (tick != -1) {
             writeShort(stream, (short)(tick - lastTick)); //jump ticks
 

@@ -4,25 +4,32 @@ import cz.koca2000.nbs4j.CustomInstrument;
 import cz.koca2000.nbs4j.Layer;
 import cz.koca2000.nbs4j.Note;
 import cz.koca2000.nbs4j.Song;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class CopyConstructorTests {
 
     @Test
     void noteCopy(){
-        Note note = new Note.Builder()
-                .setInstrument(10, true)
-                .setKey(49)
-                .setPitch(50)
-                .setPanning(10)
-                .setVolume(90)
+        Song song = new Song.Builder()
+                .addNoteToLayerAtTick(0, 0, note ->
+                        note.setInstrument(10, true)
+                                .setKey(49)
+                                .setPitch(50)
+                                .setPanning(10)
+                                .setVolume(90)
+                )
                 .build();
+        Note note = song.getLayer(0).getNote(0);
 
-        Note noteCopy = new Note.Builder(note).build();
+        assertNotNull(note);
+
+        Song song2 = new Song.Builder()
+                .addNoteCopyToLayerAtTick(0,0, note, note2 -> {})
+                .build();
+        Note noteCopy = song2.getLayer(0).getNote(0);
+        assertNotNull(noteCopy);
 
         assertNotEquals(note, noteCopy);
         assertEquals(note.getInstrument(), noteCopy.getInstrument());
@@ -35,14 +42,20 @@ public class CopyConstructorTests {
 
     @Test
     void layerCopy(){
-        Layer layer = new Layer.Builder()
-                .setName("Layer 1")
-                .setPanning(20)
-                .setVolume(40)
-                .setLocked(true)
+        Song song = new Song.Builder()
+                .addLayer(layer ->
+                        layer.setName("Layer 1")
+                                .setPanning(20)
+                                .setVolume(40)
+                                .setLocked(true)
+                )
                 .build();
+        Layer layer = song.getLayer(0);
 
-        Layer layerCopy = new Layer.Builder(layer).build();
+        Song song2 = new Song.Builder()
+                .addLayerCopy(layer, l -> {})
+                .build();
+        Layer layerCopy = song2.getLayer(0);
 
         assertNotEquals(layer, layerCopy);
         assertEquals(layer.getName(), layerCopy.getName());

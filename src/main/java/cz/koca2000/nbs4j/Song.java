@@ -7,23 +7,23 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class Song {
+public final class Song {
 
     private final List<Layer> layers;
 
     private final SongMetadata metadata;
     private final boolean isStereo;
-    private final int songLength;
+    private final long songLength;
     private final double songLengthInSeconds;
 
     private final int nonCustomInstrumentsCount;
     private final List<CustomInstrument> customInstruments;
 
-    private final TreeSet<Integer> nonEmptyTicks;
+    private final TreeSet<Long> nonEmptyTicks;
 
     // <Tick, Tempo>
-    private final TreeMap<Integer, Float> tempoChanges;
-    private final int lastTick;
+    private final TreeMap<Long, Float> tempoChanges;
+    private final long lastTick;
 
     private Song(@NotNull Builder builder, List<Layer> layers){
         this.layers = layers;
@@ -80,7 +80,7 @@ public class Song {
      * Returns number of ticks of the song
      * @return song length in ticks
      */
-    public int getSongLength() {
+    public long getSongLength() {
         return songLength;
     }
 
@@ -97,7 +97,7 @@ public class Song {
      * @param tick Tick in question
      * @return time in seconds
      */
-    public double getTimeInSecondsAtTick(int tick){
+    public double getTimeInSecondsAtTick(long tick){
         if (tick <= 0 || songLength == 0)
             return 0;
 
@@ -107,12 +107,12 @@ public class Song {
         return calculateTimeInSecondsAtTick(tick);
     }
 
-    private double calculateTimeInSecondsAtTick(int tick){
+    private double calculateTimeInSecondsAtTick(long tick){
         double length = 0;
-        int lastTick = 0;
+        long lastTick = 0;
         float lastTempo = getTempo(0);
-        for (Map.Entry<Integer, Float> tempo : tempoChanges.entrySet()){
-            int changeTick = tempo.getKey();
+        for (Map.Entry<Long, Float> tempo : tempoChanges.entrySet()){
+            long changeTick = tempo.getKey();
             if (changeTick <= 0)
                 continue;
             if (changeTick > tick)
@@ -134,8 +134,8 @@ public class Song {
      * @param fromTick tick after which the next tick should be searched
      * @return tick number if there is any note or tempo change left; otherwise, -1
      */
-    public int getNextNonEmptyTick(int fromTick){
-        Integer tick = nonEmptyTicks.higher(fromTick);
+    public long getNextNonEmptyTick(long fromTick){
+        Long tick = nonEmptyTicks.higher(fromTick);
         if (tick == null)
             return -1;
 
@@ -147,10 +147,10 @@ public class Song {
      * @param tick tick for which the tempo is requested
      * @return tempo in ticks per second
      */
-    public float getTempo(int tick){
+    public float getTempo(long tick){
         if (tempoChanges.size() == 0)
             return 10;
-        Map.Entry<Integer, Float> floorEntry = tempoChanges.floorEntry(tick);
+        Map.Entry<Long, Float> floorEntry = tempoChanges.floorEntry(tick);
         return floorEntry != null ? floorEntry.getValue() : 10;
     }
 
@@ -249,16 +249,16 @@ public class Song {
         private final SongMetadata metadata;
 
         private boolean isStereo = false;
-        private int songLength = 0;
+        private long songLength = 0;
 
         private int nonCustomInstrumentsCount = 0;
         private final List<CustomInstrument> customInstruments = new ArrayList<>();
 
-        private final TreeSet<Integer> nonEmptyTicks = new TreeSet<>();
+        private final TreeSet<Long> nonEmptyTicks = new TreeSet<>();
 
         // <Tick, Tempo>
-        private final TreeMap<Integer, Float> tempoChanges = new TreeMap<>();
-        private int lastTick = -1;
+        private final TreeMap<Long, Float> tempoChanges = new TreeMap<>();
+        private long lastTick = -1;
 
         public Builder() {
             metadata = new SongMetadata();
@@ -284,7 +284,7 @@ public class Song {
                 addLayerCopy(originalSong.getLayer(i), l -> {});
             }
 
-            for (Map.Entry<Integer, Float> entry : originalSong.tempoChanges.entrySet()){
+            for (Map.Entry<Long, Float> entry : originalSong.tempoChanges.entrySet()){
                 setTempoChange(entry.getKey(), entry.getValue());
             }
         }
@@ -320,11 +320,11 @@ public class Song {
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder addLayerCopy(Layer layer, Consumer<Layer.Builder> layerBuilderCall){
+        public Song.Builder addLayerCopy(@NotNull Layer layer, @NotNull Consumer<Layer.Builder> layerBuilderCall){
             Layer.Builder layerBuilder = new Layer.Builder(layer);
             layerBuilders.add(layerBuilder);
 
-            for (Map.Entry<Integer, Note> noteEntry : layer.getNotes().entrySet()){
+            for (Map.Entry<Long, Note.Builder> noteEntry : layerBuilder.getNotes().entrySet()){
                 onNoteAdded(noteEntry.getKey(), noteEntry.getValue());
             }
 
@@ -340,7 +340,7 @@ public class Song {
          * @throws IndexOutOfBoundsException if the index is out of bounds
          */
         @NotNull
-        public Song.Builder getLayer(int index, Consumer<Layer.Builder> layerBuilderCall) {
+        public Song.Builder getLayer(int index, @NotNull Consumer<Layer.Builder> layerBuilderCall) {
             if (index < 0 || index > layerBuilders.size()) {
                 throw new IndexOutOfBoundsException("The index is out of bounds.");
             }
@@ -393,46 +393,53 @@ public class Song {
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder addNoteToLayerAtTick(int layerIndex, int tick, Consumer<Note.Builder> noteBuilderCall){
+        public Song.Builder addNoteToLayerAtTick(int layerIndex, long tick, @NotNull Consumer<Note.Builder> noteBuilderCall){
             if (tick < 0)
                 throw new IllegalArgumentException("Tick can not be negative.");
 
             Note.Builder noteBuilder = new Note.Builder();
             noteBuilderCall.accept(noteBuilder);
 
-            Note note = noteBuilder.build();
-            addNoteToLayerAtTick(layerIndex, tick, note);
+            addNoteToLayer(layerIndex, tick, noteBuilder);
 
             return this;
         }
 
         /**
-         * Adds the note to the song on specified tick and layer.
+         * Adds the copy of the note to the song on specified tick and layer.
          * If the tick is higher than song's length, song is prolonged.
          * @param tick tick of the note
          * @param layerIndex index of layer on which the song should be placed
-         * @param note added {@link Note}
+         * @param note {@link Note} to be copied
+         * @param noteBuilderCall {@link Note.Builder} of the added note
          * @throws IllegalArgumentException of tick is negative.
          * @throws IndexOutOfBoundsException if layer index is negative.
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder addNoteToLayerAtTick(int layerIndex, int tick, Note note){
+        public Song.Builder addNoteCopyToLayerAtTick(int layerIndex, long tick, @NotNull Note note, @NotNull Consumer<Note.Builder> noteBuilderCall){
             if (tick < 0)
                 throw new IllegalArgumentException("Tick can not be negative.");
 
+            Note.Builder noteBuilder = new Note.Builder(note);
+            noteBuilderCall.accept(noteBuilder);
+
+            addNoteToLayer(layerIndex, tick, noteBuilder);
+
+            return this;
+        }
+
+        private void addNoteToLayer(int layerIndex, long tick, @NotNull Note.Builder noteBuilder) {
             if (layerIndex >= layerBuilders.size())
                 setLayersCount(layerIndex + 1);
 
             Layer.Builder layer = layerBuilders.get(layerIndex);
 
-            layer.setNoteInternal(tick, note);
-            onNoteAdded(tick, note);
-
-            return this;
+            layer.setNoteInternal(tick, noteBuilder);
+            onNoteAdded(tick, noteBuilder);
         }
 
-        void onNoteAdded(int tick, @NotNull Note note){
+        private void onNoteAdded(long tick, @NotNull Note.Builder note){
             if (!note.isCustomInstrument())
                 increaseNonCustomInstrumentsCountTo(note.getInstrument() + 1);
 
@@ -453,7 +460,7 @@ public class Song {
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder removeNote(int tick, int layerIndex){
+        public Song.Builder removeNote(long tick, int layerIndex){
             Layer.Builder layer = layerBuilders.get(layerIndex);
             layer.removeNoteInternal(tick);
 
@@ -485,7 +492,7 @@ public class Song {
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder setLength(int length){
+        public Song.Builder setLength(long length){
             if (lastTick >= length) {
                 throw new IllegalArgumentException("Specified song length would not contain all notes or tempo changes.");
             }
@@ -519,7 +526,7 @@ public class Song {
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder setTempoChange(int firstTick, float tempo){
+        public Song.Builder setTempoChange(long firstTick, float tempo){
             if (tempo <= 0)
                 throw new IllegalArgumentException("Tempo has to be positive value.");
 
@@ -561,9 +568,24 @@ public class Song {
                 if (layer.getPanning() != Layer.NEUTRAL_PANNING) {
                     setStereo();
                 }
+
+                if (!isStereo) {
+                    for (Note note : layer.getNotes().values()) {
+                        if (note.getPanning() != Note.NEUTRAL_PANNING) {
+                            setStereo();
+                            break;
+                        }
+                    }
+                }
             }
 
-            return new Song(this, Collections.unmodifiableList(layers));
+            Song song = new Song(this, layers);
+
+            for (Layer layer : layers) {
+                layer.setSong(song);
+            }
+
+            return song;
         }
     }
 }

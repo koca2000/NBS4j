@@ -131,4 +131,61 @@ public class SongIntegrityTests {
         assertEquals(1, songBuilder.build().getNonCustomInstrumentsCount());
     }
 
+    @Test
+    void layerGetSong() {
+        int layerIndex = songBuilder.getLayersCount();
+        Song song = songBuilder.addLayer(l -> l.setName("Test layer")).build();
+
+        Layer layer = song.getLayer(layerIndex);
+        assertNotNull(layer);
+        assertEquals("Test layer", layer.getName());
+        assertEquals(song, layer.getSong());
+    }
+
+    @Test
+    void layerCopyGetSong() {
+        int layerIndex = songBuilder.getLayersCount();
+        Song prepareSong = songBuilder.addLayer(l -> l.setName("Test layer")).build();
+        Song song = new Song.Builder().addLayerCopy(prepareSong.getLayer(layerIndex), l -> {}).build();
+
+        Layer layer = song.getLayer(0);
+        assertNotNull(layer);
+        assertEquals("Test layer", layer.getName());
+        assertEquals(song, layer.getSong());
+    }
+
+    @Test
+    void noteGetLayer() {
+        Song song = songBuilder.addNoteToLayerAtTick(0, 0, n -> n.setKey(70)).build();
+        Layer layer = song.getLayer(0);
+
+        assertNotNull(layer);
+
+        Note note = layer.getNote(0);
+
+        assertNotNull(note);
+        assertEquals(70, note.getKey());
+        assertEquals(layer, note.getLayer());
+    }
+
+    @Test
+    void noteCopyGetLayer() {
+        Song prepareSong = songBuilder.addNoteToLayerAtTick(0, 0, n -> n.setKey(70)).build();
+        Note prepareNote = prepareSong.getLayer(0).getNote(0);
+        assertNotNull(prepareNote);
+
+        Song song = new Song.Builder()
+                .addNoteCopyToLayerAtTick(0, 0, prepareNote, n -> {})
+                .build();
+
+        Layer layer = song.getLayer(0);
+
+        assertNotNull(layer);
+
+        Note note = layer.getNote(0);
+
+        assertNotNull(note);
+        assertEquals(70, note.getKey());
+        assertEquals(layer, note.getLayer());
+    }
 }
