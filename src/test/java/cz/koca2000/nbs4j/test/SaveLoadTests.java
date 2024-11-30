@@ -10,34 +10,46 @@ import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class SaveLoadTests {
+class SaveLoadTests {
 
     static Song originalSong;
 
     @BeforeAll
     static void prepareSong(){
-        originalSong = new Song.Builder()
-                .addLayer(l -> l.setName("Test layer 1")
-                        .setVolume(50)
-                        .setPanning(50)
-                        .setLocked(true))
-                .addLayer(l -> l.setName("Test layer 2")
-                        .setVolume(25)
-                        .setPanning(-50))
-                .addNoteToLayerAtTick(0, 5, n -> n.setInstrument(6)
-                        .setVolume(20)
-                        .setKey(70)
-                        .setPitch(10))
-                .addNoteToLayerAtTick(1, 10, n -> n.setInstrument(1, true)
-                        .setVolume(40)
-                        .setKey(30)
-                        .setPitch(-10))
-                .addCustomInstrument(new CustomInstrument.Builder()
+        originalSong = Song.builder()
+                .layer(Layer.builder()
+                        .name("Test layer 1")
+                        .volume(50)
+                        .panning(50)
+                        .locked(true)
+                        .note(5, Note.builder()
+                                .instrument(6)
+                                .volume(20)
+                                .key(70)
+                                .pitch(10)
+                                .build()
+                        )
+                        .build()
+                )
+                .layer(Layer.builder()
+                        .name("Test layer 2")
+                        .volume(25)
+                        .panning(-50)
+                        .note(10, Note.builder()
+                                .instrument(1, true)
+                                .volume(40)
+                                .key(30)
+                                .pitch(-10)
+                                .build()
+                        )
+                        .build()
+                )
+                .customInstrument(CustomInstrument.builder()
                         .setName("Custom Instrument 1")
                         .setFileName("file/name")
                         .setKey(10)
                         .setShouldPressKey(true).build())
-                .setTempoChange(-1, 8.0f)
+                .tempoChange(-1, 8.0f)
                 .build();
     }
 
@@ -182,5 +194,4 @@ public class SaveLoadTests {
         song.save(nbsVersion, outputStream);
         return Song.fromStream(new ByteArrayInputStream(outputStream.toByteArray()));
     }
-
 }

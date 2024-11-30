@@ -2,147 +2,138 @@ package cz.koca2000.nbs4j;
 
 import org.jetbrains.annotations.NotNull;
 
-public final class Note {
+public interface Note {
+    int NEUTRAL_PANNING = 0;
+    int MAXIMUM_PANNING = 100;
 
-    public static final int NEUTRAL_PANNING = 0;
-    public static final int MAXIMUM_PANNING = 100;
+    int MINIMUM_KEY = 0;
+    int MAXIMUM_KEY = 87;
 
-    private final int instrument;
-    private final boolean isCustomInstrument;
-    private final int key;
-    private final int pitch;
-    private final int panning;
-    private final byte volume;
-
-    private Layer layer = null;
-
-    private Note(@NotNull Builder noteBuilder){
-        instrument = noteBuilder.instrument;
-        isCustomInstrument = noteBuilder.isCustomInstrument;
-        key = noteBuilder.key;
-        pitch = noteBuilder.pitch;
-        panning = noteBuilder.panning;
-        volume = noteBuilder.volume;
-    }
-
-    /**
-     * Sets the {@link Layer} during the initialization.
-     * @param song Layer to which this note belongs
-     * @throws IllegalStateException If the method was already called before.
-     */
-    void setLayer(@NotNull Layer song) {
-        if (this.layer != null) {
-            throw new IllegalStateException("Note already has the layer set.");
-        }
-        this.layer = song;
-    }
+    int MINIMUM_VOLUME = 0;
+    int MAXIMUM_VOLUME = 100;
 
     /**
      * Returns the index of the instrument of this note. To recognize whether it is custom instrument use {@link #isCustomInstrument()}
+     *
      * @return index of the instrument
      */
-    public int getInstrument() {
-        return instrument;
-    }
+    int getInstrument();
 
     /**
      * Returns whether the note uses custom instrument.
+     *
      * @return true if used instrument is custom instrument; otherwise, false
      */
-    public boolean isCustomInstrument() {
-        return isCustomInstrument;
-    }
+    boolean isCustomInstrument();
 
     /**
      * Returns the key of the note.
+     *
      * @return value in range [0; 87]; 0 is A0 and 87 is C8.
      */
-    public int getKey() {
-        return key;
-    }
+    int getKey();
 
     /**
      * Returns fine pitch of the note.
+     *
      * @return 0 is no fine pitch; +-100 is semitone difference
      */
-    public int getPitch() {
-        return pitch;
-    }
+    int getPitch();
 
     /**
      * Returns value of stereo offset of this note.
+     *
      * @return value in range [-100; 100]; -100 two blocks left; 0 center; 100 two blocks right
      */
-    public int getPanning() {
-        return panning;
-    }
+    int getPanning();
 
     /**
      * Returns the volume of this note.
+     *
      * @return value in range [0; 100]
      */
-    public byte getVolume() {
-        return volume;
+    byte getVolume();
+
+    static Builder builder() {
+        return builder(false);
     }
 
-    /**
-     * Returns the {@link Layer} to which the note belongs
-     * @return {@link Layer}
-     */
-    public @NotNull Layer getLayer() {
-        return layer;
+    static Builder builder(boolean isStrict) {
+        return new Builder(isStrict);
     }
 
-    public static final class Builder {
-        private int instrument = 0;
-        private boolean isCustomInstrument = false;
-        private int key = 45;
-        private int pitch = 0;
-        private int panning = 0;
-        private byte volume = 100;
+    @NotNull
+    static Builder builder(@NotNull Note note) {
+        return new Builder(note, false);
+    }
 
-        Builder() {
+    @NotNull
+    static Builder builder(@NotNull Note note, boolean isStrict) {
+        return new Builder(note, isStrict);
+    }
+
+    final class Builder {
+        private final boolean isStrict;
+        int instrument = 0;
+        boolean isCustomInstrument = false;
+        int key = 45;
+        int pitch = 0;
+        int panning = 0;
+        byte volume = 100;
+
+        private Builder(boolean isStrict) {
+            this.isStrict = isStrict;
         }
 
-        Builder(@NotNull Note note) {
-            instrument = note.instrument;
-            isCustomInstrument = note.isCustomInstrument;
-            key = note.key;
-            pitch = note.pitch;
-            panning = note.panning;
-            volume = note.volume;
+        private Builder(@NotNull Note note, boolean isStrict) {
+            this(isStrict);
+            instrument = note.getInstrument();
+            isCustomInstrument = note.isCustomInstrument();
+            key = note.getKey();
+            pitch = note.getPitch();
+            panning = note.getPanning();
+            volume = note.getVolume();
         }
 
         /**
          * Sets index of the non-custom instrument of this note.
-         * @param instrument index of the instrument
+         *
+         * @param instrument Index of the instrument. If the {@link Builder} is not in strict mode, values are clipped to nearest valid value.
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the instrument is negative
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Builder setInstrument(int instrument){
-            return setInstrument(instrument, false);
+        public Builder instrument(int instrument) {
+            return instrument(instrument, false);
         }
 
         /**
          * Sets the non-custom instrument of this note.
+         *
          * @param instrument {@link Instrument}
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Builder setInstrument(Instrument instrument){
-            return setInstrument(instrument.getId(), false);
+        public Builder instrument(Instrument instrument) {
+            return instrument(instrument.getId(), false);
         }
 
         /**
          * Sets index of the instrument of this note and whether it is custom instrument.
-         * @param instrument index of the instrument
-         * @param isCustom whether it is custom instrument (custom instruments have their own indexing)
+         *
+         * @param instrument Index of the instrument. If the {@link Builder} is not in strict mode, values are clipped to nearest valid value.
+         * @param isCustom   Whether it is a custom instrument (custom instruments have their own indexing)
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the instrument is negative
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Builder setInstrument(int instrument, boolean isCustom){
-            if (instrument < 0)
-                throw new IllegalArgumentException("Instrument index can not be negative");
+        public Builder instrument(int instrument, boolean isCustom) {
+            if (instrument < 0) {
+                if (isStrict) {
+                    throw new IllegalArgumentException("Instrument index can not be negative");
+                }
+                instrument = 0;
+            }
 
             this.instrument = instrument;
             isCustomInstrument = isCustom;
@@ -152,14 +143,14 @@ public final class Note {
 
         /**
          * Sets the key of this note.
-         * @param key Value 0 is A0 and 87 is C8.
+         *
+         * @param key Value 0 is A0 and 87 is C8. If the {@link Builder} is not in strict mode, values are clipped to nearest valid value.
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the value is out of range [{@link #MINIMUM_KEY}, {@link #MAXIMUM_KEY}] inclusive.
          * @return this instance of {@link Builder}
-         * @throws IllegalArgumentException if the key is outside of range [0; 87] inclusive.
          */
         @NotNull
-        public Builder setKey(int key){
-            if (key < 0 || key > 87)
-                throw new IllegalArgumentException("Key must be in range [0; 87] inclusive.");
+        public Builder key(int key) {
+            key = normalizeRangeOrThrow(key, MINIMUM_KEY, MAXIMUM_KEY, "Key");
 
             this.key = (byte) key;
             return this;
@@ -167,17 +158,14 @@ public final class Note {
 
         /**
          * Sets the volume of this note.
-         * @param volume volume between 0 and 100. Values greater than 100 are clipped to 100 and values lower than 0 are clipped to 0.
+         *
+         * @param volume Value between {@link #MINIMUM_VOLUME} and {@link #MAXIMUM_VOLUME}. If the {@link Builder} is not in strict mode, values are clipped to nearest valid value.
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the value is out of range [{@link #MINIMUM_VOLUME}, {@link #MAXIMUM_VOLUME}] inclusive.
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Builder setVolume(int volume){
-            if (volume < 0) {
-                volume = 0;
-            }
-            if (volume > 100) {
-                volume = 100;
-            }
+        public Builder volume(int volume) {
+            volume = normalizeRangeOrThrow(volume, MINIMUM_VOLUME, MAXIMUM_VOLUME, "Volume");
 
             this.volume = (byte) volume;
             return this;
@@ -185,85 +173,47 @@ public final class Note {
 
         /**
          * Sets the fine pitch of note.
+         *
          * @param pitch 0 is no fine pitch; +-100 is semitone difference
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Builder setPitch(int pitch){
+        public Builder pitch(int pitch) {
             this.pitch = pitch;
             return this;
         }
 
         /**
          * Sets the stereo offset of the note.
-         * @param panning -100 two blocks left; 0 center; 100 two blocks right
+         *
+         * @param panning -100 two blocks left; 0 center; 100 two blocks right. If the {@link Builder} is not in strict mode, values are clipped to nearest valid value.
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the value is out of range [-{@link #MAXIMUM_PANNING}; {@link #MAXIMUM_PANNING}] inclusive
          * @return this instance of {@link Builder}
-         * @throws IllegalArgumentException if the panning is out of range [-{@link #MAXIMUM_PANNING}; {@link #MAXIMUM_PANNING}] inclusive]
          */
         @NotNull
-        public Builder setPanning(int panning){
-            if (panning < -MAXIMUM_PANNING || panning > MAXIMUM_PANNING)
-                throw new IllegalArgumentException("Panning must be in range [-" + MAXIMUM_PANNING + "; " + MAXIMUM_PANNING + "] inclusive.");
+        public Builder panning(int panning) {
+            panning = normalizeRangeOrThrow(panning, -MAXIMUM_PANNING, MAXIMUM_PANNING, "Panning");
 
             this.panning = panning;
-
             return this;
         }
 
-        /**
-         * Returns the index of the instrument of this note. To recognize whether it is custom instrument use {@link #isCustomInstrument()}
-         * @return index of the instrument
-         */
-        public int getInstrument() {
-            return instrument;
-        }
+        private int normalizeRangeOrThrow(int value, int min, int max, String parameterDisplayName) {
+            if (isStrict && (value < min || value > max)) {
+                throw new IllegalArgumentException(parameterDisplayName + " must be in range [" + min + "; " + max + "] inclusive.");
+            }
 
-        /**
-         * Returns whether the note uses custom instrument.
-         * @return true if used instrument is custom instrument; otherwise, false
-         */
-        public boolean isCustomInstrument() {
-            return isCustomInstrument;
-        }
-
-        /**
-         * Returns the key of the note.
-         * @return value in range [0; 87]; 0 is A0 and 87 is C8.
-         */
-        public int getKey() {
-            return key;
-        }
-
-        /**
-         * Returns fine pitch of the note.
-         * @return 0 is no fine pitch; +-100 is semitone difference
-         */
-        public int getPitch() {
-            return pitch;
-        }
-
-        /**
-         * Returns value of stereo offset of this note.
-         * @return value in range [-100; 100]; -100 two blocks left; 0 center; 100 two blocks right
-         */
-        public int getPanning() {
-            return panning;
-        }
-
-        /**
-         * Returns the volume of this note.
-         * @return value in range [0; 100]
-         */
-        public byte getVolume() {
-            return volume;
+            return Math.min(Math.max(value, min), max);
         }
 
         /**
          * Creates new instance of {@link Note} based on data from this builder.
+         *
          * @return {@link Note}
          */
-        @NotNull Note build() {
-            return new Note(this);
+        @NotNull
+        public Note build() {
+            return new NoteImpl(this);
         }
     }
 }

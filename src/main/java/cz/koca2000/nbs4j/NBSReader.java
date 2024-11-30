@@ -6,29 +6,34 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 class NBSReader {
 
-    private NBSReader(){}
+    private NBSReader() {
+    }
 
     @NotNull
     public static Song readSong(@NotNull InputStream stream) {
-        Song.Builder song = new Song.Builder();
+        Song.Builder song = Song.builder();
 
         try {
             DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(stream));
 
             HeaderData header = readHeader(song, dataInputStream);
 
-            song.setLayersCount(readShort(dataInputStream));
+            List<Layer.Builder> layers = initializeLayerBuilders(dataInputStream);
 
             readMetadata(song, header, dataInputStream);
 
-            readNotes(song, header, dataInputStream);
+            readNotes(header, layers, dataInputStream);
 
-            readLayers(song, header, dataInputStream);
+            readLayers(header, layers, dataInputStream);
 
             readCustomInstruments(song, dataInputStream);
+
+            buildLayers(song, layers);
         } catch (Exception e) {
             throw new SongCorruptedException(e);
         }
@@ -69,26 +74,36 @@ class NBSReader {
 
         short length = readShort(stream);
         if (length == 0) { // New nbs format
-            data.Version = stream.readByte();
-            data.FirstCustomInstrumentIndex = stream.readByte();
+            data.version = stream.readByte();
+            data.firstCustomInstrumentIndex = stream.readByte();
 
-            if (data.Version >= 3) // Until nbs 3 there wasn't length specified in the file
-                song.setLength(readShort(stream));
+            if (data.version >= 3) // Until nbs 3 there wasn't length specified in the file
+                song.length(readShort(stream));
         }
         else
-            song.setLength(length);
+            song.length(length);
 
         return data;
     }
 
+    @NotNull
+    private static List<Layer.Builder> initializeLayerBuilders(@NotNull DataInputStream stream) throws IOException {
+        List<Layer.Builder> layers = new ArrayList<>();
+        int count = readShort(stream);
+        for (int i = 0; i < count; i++) {
+            layers.add(Layer.builder());
+        }
+        return layers;
+    }
+
     private static void readMetadata(@NotNull Song.Builder song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
-        SongMetadata metadata = song.getMetadata();
+        SongMetadata metadata = new SongMetadata();
 
         metadata.setTitle(readString(stream))
                 .setAuthor(readString(stream))
                 .setOriginalAuthor(readString(stream))
                 .setDescription(readString(stream));
-        song.setTempoChange(-1,readShort(stream) / 100f);
+        song.tempoChange(0,readShort(stream) / 100f);
         metadata.setAutoSave(stream.readBoolean())
                 .setAutoSaveDuration(stream.readByte())
                 .setTimeSignature(stream.readByte())
@@ -98,14 +113,15 @@ class NBSReader {
                 .setNoteBlocksAdded(readInt(stream))
                 .setNoteBlocksRemoved(readInt(stream))
                 .setOriginalMidiFileName(readString(stream));
-        if (header.Version >= 4) {
+        if (header.version >= 4) {
             metadata.setLoop(stream.readBoolean())
                     .setLoopMaxCount(stream.readByte())
                     .setLoopStartTick(readShort(stream));
         }
+        song.metadata(metadata);
     }
 
-    private static void readNotes(@NotNull Song.Builder song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
+    private static void readNotes(@NotNull HeaderData header, @NotNull List<Layer.Builder> layers, @NotNull DataInputStream stream) throws IOException {
         short tick = -1;
         while (true) {
             short jumpTicks = readShort(stream); // jumps till next tick
@@ -123,54 +139,59 @@ class NBSReader {
                 }
                 layer += jumpLayers;
 
-                byte instrument = stream.readByte();
-
-                int instrumentId;
-                boolean isCustomInstrument;
-                if (instrument >= header.FirstCustomInstrumentIndex){
-                    instrumentId = instrument - header.FirstCustomInstrumentIndex;
-                    isCustomInstrument = true;
-                } else {
-                    instrumentId = instrument;
-                    isCustomInstrument = false;
-                }
-
-                byte key = stream.readByte();
-                byte volume;
-                int panning;
-                short pitch;
-                if (header.Version >= 4) {
-                    volume = stream.readByte();
-                    panning = 100 - stream.readUnsignedByte(); // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
-                    pitch = readShort(stream);
-                } else {
-                    volume = 100;
-                    panning = 0;
-                    pitch = 0;
-                }
-
-                song.addNoteToLayerAtTick(layer, tick,
-                        note -> note.setInstrument(instrumentId, isCustomInstrument)
-                                .setKey(key)
-                                .setVolume(volume)
-                                .setPanning(panning)
-                                .setPitch(pitch));
+                readNote(header, tick, layer, layers, stream);
             }
         }
     }
 
-    private static void readLayers(@NotNull Song.Builder song, @NotNull HeaderData header, @NotNull DataInputStream stream) throws IOException {
-        for (int i = 0; i < song.getLayersCount(); i++) {
-            Layer.Builder layer = song.getLayer(i);
+    private static void readNote(@NotNull HeaderData header, short tick, short layer, @NotNull List<Layer.Builder> layers, @NotNull DataInputStream stream) throws IOException {
+        byte instrument = stream.readByte();
 
-            layer.setName(readString(stream));
-            if (header.Version >= 4){
-                layer.setLocked(stream.readByte() == 1);
+        int instrumentId;
+        boolean isCustomInstrument;
+        if (instrument >= header.firstCustomInstrumentIndex){
+            instrumentId = instrument - header.firstCustomInstrumentIndex;
+            isCustomInstrument = true;
+        } else {
+            instrumentId = instrument;
+            isCustomInstrument = false;
+        }
+
+        byte key = stream.readByte();
+        byte volume;
+        int panning;
+        short pitch;
+        if (header.version >= 4) {
+            volume = stream.readByte();
+            panning = 100 - stream.readUnsignedByte(); // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
+            pitch = readShort(stream);
+        } else {
+            volume = 100;
+            panning = 0;
+            pitch = 0;
+        }
+
+        layers.get(layer)
+                .note(tick, Note.builder()
+                        .instrument(instrumentId, isCustomInstrument)
+                        .key(key)
+                        .volume(volume)
+                        .panning(panning)
+                        .pitch(pitch)
+                        .build()
+                );
+    }
+
+    private static void readLayers(@NotNull HeaderData header, @NotNull List<Layer.Builder> layers, @NotNull DataInputStream stream) throws IOException {
+        for (Layer.Builder layer : layers) {
+            layer.name(readString(stream));
+            if (header.version >= 4) {
+                layer.locked(stream.readByte() == 1);
             }
 
-            layer.setVolume(stream.readByte());
-            if (header.Version >= 2){
-                layer.setPanning(100 - stream.readUnsignedByte()); // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
+            layer.volume(stream.readByte());
+            if (header.version >= 2) {
+                layer.panning(100 - stream.readUnsignedByte()); // 0 is 2 blocks right in nbs format, we want -100 to be left and 100 to be right
             }
         }
     }
@@ -179,7 +200,7 @@ class NBSReader {
         byte customInstrumentCount = stream.readByte();
 
         for (int index = 0; index < customInstrumentCount; index++) {
-            song.addCustomInstrument(new CustomInstrument.Builder()
+            song.customInstrument(CustomInstrument.builder()
                     .setName(readString(stream))
                     .setFileName(readString(stream))
                     .setKey(stream.readByte())
@@ -188,9 +209,15 @@ class NBSReader {
         }
     }
 
+    private static void buildLayers(@NotNull Song.Builder song, @NotNull List<Layer.Builder> layers) {
+        for (Layer.Builder layerBuilder : layers) {
+            song.layer(layerBuilder.build());
+        }
+    }
+
     private static class HeaderData{
-        public int Version = 0;
-        public int FirstCustomInstrumentIndex = 10; //Backward compatibility - most of the songs with old structure are from 1.12
+        private int version = 0;
+        private int firstCustomInstrumentIndex = 10; //Backward compatibility - most of the songs with old structure are from 1.12
     }
 
 }

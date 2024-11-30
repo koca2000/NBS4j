@@ -1,35 +1,25 @@
 package cz.koca2000.nbs4j.test;
 
-import cz.koca2000.nbs4j.CustomInstrument;
-import cz.koca2000.nbs4j.Layer;
-import cz.koca2000.nbs4j.Note;
-import cz.koca2000.nbs4j.Song;
+import cz.koca2000.nbs4j.*;
 import org.junit.jupiter.api.Test;
+
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class CopyConstructorTests {
+class CopyConstructorTests {
 
     @Test
     void noteCopy(){
-        Song song = new Song.Builder()
-                .addNoteToLayerAtTick(0, 0, note ->
-                        note.setInstrument(10, true)
-                                .setKey(49)
-                                .setPitch(50)
-                                .setPanning(10)
-                                .setVolume(90)
-                )
+        Note note = Note.builder()
+                .instrument(10, true)
+                .key(49)
+                .pitch(50)
+                .panning(10)
+                .volume(90)
                 .build();
-        Note note = song.getLayer(0).getNote(0);
 
-        assertNotNull(note);
-
-        Song song2 = new Song.Builder()
-                .addNoteCopyToLayerAtTick(0,0, note, note2 -> {})
-                .build();
-        Note noteCopy = song2.getLayer(0).getNote(0);
-        assertNotNull(noteCopy);
+        Note noteCopy = Note.builder(note).build();
 
         assertNotEquals(note, noteCopy);
         assertEquals(note.getInstrument(), noteCopy.getInstrument());
@@ -42,20 +32,15 @@ public class CopyConstructorTests {
 
     @Test
     void layerCopy(){
-        Song song = new Song.Builder()
-                .addLayer(layer ->
-                        layer.setName("Layer 1")
-                                .setPanning(20)
-                                .setVolume(40)
-                                .setLocked(true)
-                )
+        Layer layer = Layer.builder()
+                .name("Layer 1")
+                .panning(20)
+                .volume(40)
+                .locked(true)
+                .note(10, Note.builder().build())
                 .build();
-        Layer layer = song.getLayer(0);
 
-        Song song2 = new Song.Builder()
-                .addLayerCopy(layer, l -> {})
-                .build();
-        Layer layerCopy = song2.getLayer(0);
+        Layer layerCopy = Layer.builder(layer).build();
 
         assertNotEquals(layer, layerCopy);
         assertEquals(layer.getName(), layerCopy.getName());
@@ -67,26 +52,32 @@ public class CopyConstructorTests {
 
     @Test
     void songCopy(){
-        Song song = new Song.Builder()
-                .setLayersCount(5)
-                .setLength(100)
-                .addNoteToLayerAtTick(0, 10, n -> n.setInstrument(7))
-                .getLayer(0, l -> l.setName("Layer 111"))
-                .addCustomInstrument(new CustomInstrument.Builder()
+        Song song = Song.builder()
+                .layer(Layer.builder()
+                        .name("Layer 111")
+                        .note(10, Note.builder().instrument(Instrument.BELL).build())
+                        .build()
+                )
+                .length(100)
+                .layer(Layer.builder().build())
+                .layer(Layer.builder().build())
+                .layer(Layer.builder().build())
+                .customInstrument(CustomInstrument.builder()
                         .setName("Custom instrument 123")
                         .build())
                 .build();
 
-        Song songCopy = new Song.Builder(song).build();
+        Song songCopy = Song.builder(song).build();
 
         assertNotEquals(song, songCopy);
         assertEquals(song.getLayersCount(), songCopy.getLayersCount());
         assertEquals(song.getSongLength(), songCopy.getSongLength());
         assertNotEquals(song.getLayer(0), songCopy.getLayer(0));
         assertEquals(song.getLayer(0).getName(), songCopy.getLayer(0).getName());
-        assertEquals(song.getLayer(0).getNote(10).getInstrument(), songCopy.getLayer(0).getNote(10).getInstrument());
+        assertNotNull(song.getLayer(0).getNote(10));
+        assertNotNull(songCopy.getLayer(0).getNote(10));
+        assertEquals(Objects.requireNonNull(song.getLayer(0).getNote(10)).getInstrument(), Objects.requireNonNull(songCopy.getLayer(0).getNote(10)).getInstrument());
         assertEquals(song.getCustomInstrumentsCount(), songCopy.getCustomInstrumentsCount());
         assertEquals(song.getCustomInstrument(0).getName(), songCopy.getCustomInstrument(0).getName());
     }
-
 }

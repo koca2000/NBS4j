@@ -1,16 +1,18 @@
 package cz.koca2000.nbs4j.test;
 
+import cz.koca2000.nbs4j.Layer;
+import cz.koca2000.nbs4j.Note;
 import cz.koca2000.nbs4j.Song;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class SongTests {
+class SongTests {
 
     @Test
     void songTempo(){
-        Song song = new Song.Builder()
-                .setTempoChange(-1, 5)
+        Song song = Song.builder()
+                .tempoChange(-1, 5)
                 .build();
 
         assertEquals(5, song.getTempo(-1));
@@ -19,20 +21,66 @@ public class SongTests {
 
     @Test
     void songNextTick(){
-        Song song = new Song.Builder()
-                .setLayersCount(1)
-                .addNoteToLayerAtTick(0, 5, builder -> builder.setKey(5))
+        Song song = Song.builder()
+                .layer(Layer.builder()
+                        .note(5, Note.builder().key(5).build())
+                        .build()
+                )
                 .build();
 
         assertEquals(5, song.getNextNonEmptyTick(0));
     }
 
     @Test
+    void songNextTickTempoChange(){
+        Song song = Song.builder()
+                .layer(Layer.builder()
+                        .note(5, Note.builder().key(5).build())
+                        .build()
+                )
+                .tempoChange(3, 15)
+                .build();
+
+        assertEquals(3, song.getNextNonEmptyTick(0));
+    }
+
+    @Test
+    void songNextTickAfterLayerRemoval(){
+        Song song = Song.builder()
+                .layer(Layer.builder()
+                        .note(5, Note.builder().key(5).build())
+                        .build()
+                )
+                .layer(Layer.builder()
+                        .note(10, Note.builder().key(5).build())
+                        .build()
+                )
+                .layer(0, null)
+                .build();
+
+        assertEquals(10, song.getNextNonEmptyTick(0));
+    }
+
+    @Test
+    void songNextTickTempoChangeAfterLayerRemoval(){
+        Song song = Song.builder()
+                .layer(Layer.builder()
+                        .note(5, Note.builder().key(5).build())
+                        .build()
+                )
+                .tempoChange(7, 15)
+                .layer(0, null)
+                .build();
+
+        assertEquals(7, song.getNextNonEmptyTick(0));
+    }
+
+    @Test
     void songLengthInSeconds(){
-        Song song = new Song.Builder()
-                .setTempoChange(-1, 20)
-                .setTempoChange(10, 10)
-                .setLength(40)
+        Song song = Song.builder()
+                .tempoChange(-1, 20)
+                .tempoChange(10, 10)
+                .length(40)
                 .build();
 
         assertEquals(0.5 + 3, song.getSongLengthInSeconds(), 0.001);
@@ -40,10 +88,10 @@ public class SongTests {
 
     @Test
     void songTimeAtTick(){
-        Song song = new Song.Builder()
-                .setTempoChange(-1, 20)
-                .setTempoChange(10, 10)
-                .setLength(20)
+        Song song = Song.builder()
+                .tempoChange(-1, 20)
+                .tempoChange(10, 10)
+                .length(20)
                 .build();
 
         assertEquals(0.05, song.getTimeInSecondsAtTick(1), 0.001);

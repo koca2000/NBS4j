@@ -2,6 +2,8 @@ package cz.koca2000.nbs4j;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public class CustomInstrument {
 
     private final String name;
@@ -50,11 +52,42 @@ public class CustomInstrument {
         return shouldPressKey;
     }
 
+    public static Builder builder() {
+        return builder(false);
+    }
+
+    public static Builder builder(boolean isStrict) {
+        return new Builder(isStrict);
+    }
+
+    public static Builder builder(CustomInstrument other) {
+        return builder(other, false);
+    }
+
+    public static Builder builder(CustomInstrument other, boolean isStrict) {
+        return new Builder(other, isStrict);
+    }
+
     public static final class Builder {
+        private final boolean isStrict;
+
         private String name = "";
         private String fileName = "";
-        private int key = 0;
+        private int key = 45;
         private boolean shouldPressKey = false;
+
+        private Builder(boolean isStrict) {
+            this.isStrict = isStrict;
+        }
+
+        private Builder(CustomInstrument other, boolean isStrict) {
+            this(isStrict);
+
+            this.name = other.getName();
+            this.fileName = other.getFileName();
+            this.key = other.getKey();
+            this.shouldPressKey = other.shouldPressKey();
+        }
 
         /**
          * Sets the name of this custom instrument
@@ -63,6 +96,8 @@ public class CustomInstrument {
          */
         @NotNull
         public Builder setName(@NotNull String name){
+            Objects.requireNonNull(name);
+
             this.name = name;
             return this;
         }
@@ -74,20 +109,28 @@ public class CustomInstrument {
          */
         @NotNull
         public Builder setFileName(@NotNull String fileName){
+            Objects.requireNonNull(fileName);
+
             this.fileName = fileName;
             return this;
         }
 
         /**
          * Key of this custom instrument.
-         * @param key Value 0 is A0 and 87 is C8.
+         * @param key Value 0 is A0 and 87 is C8. If the {@link Builder} is not in strict mode, values are clipped to nearest valid value.
          * @return this instance of {@link Builder}
-         * @throws IllegalArgumentException if the argument is not in range [0; 87] inclusive.
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the argument is not in range [0; 87] inclusive
          */
         @NotNull
         public Builder setKey(int key){
-            if (key < 0 || key > 87)
-                throw new IllegalArgumentException("Key must be in range [0; 87].");
+            if (key < Note.MINIMUM_KEY || key > Note.MAXIMUM_KEY) {
+                if (isStrict) {
+                    throw new IllegalArgumentException("Key must be in range [" + Note.MINIMUM_KEY + "; " + Note.MAXIMUM_KEY + "].");
+                }
+
+                key = key < Note.MINIMUM_KEY ? Note.MINIMUM_KEY : Note.MAXIMUM_KEY;
+            }
+
             this.key = key;
             return this;
         }

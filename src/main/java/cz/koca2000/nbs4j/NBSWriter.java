@@ -8,27 +8,26 @@ import java.io.OutputStream;
 
 class NBSWriter {
 
-    public static void writeSong(@NotNull Song song, int nbsVersion, @NotNull OutputStream stream){
-        try {
-            DataOutputStream outputStream = new DataOutputStream(stream);
+    private NBSWriter() {
+    }
 
-            int instrumentsCount = roundInstrumentCountToMinecraftVanillaCount(song.getNonCustomInstrumentsCount());
-            writeHeader(outputStream, song, nbsVersion, instrumentsCount);
+    public static void writeSong(@NotNull Song song, int nbsVersion, @NotNull OutputStream stream) throws IOException {
+        DataOutputStream outputStream = new DataOutputStream(stream);
 
-            writeShort(outputStream, (short) song.getLayersCount()); // song height
+        int instrumentsCount = roundInstrumentCountToMinecraftVanillaCount(song.getNonCustomInstrumentsCount());
+        writeHeader(outputStream, song, nbsVersion, instrumentsCount);
 
-            writeMetadata(outputStream, song, nbsVersion);
+        writeShort(outputStream, (short) song.getLayersCount()); // song height
 
-            writeNotes(outputStream, song, nbsVersion, instrumentsCount);
+        writeMetadata(outputStream, song, nbsVersion);
 
-            writeLayers(outputStream, song, nbsVersion);
+        writeNotes(outputStream, song, nbsVersion, instrumentsCount);
 
-            writeCustomInstruments(outputStream, song);
+        writeLayers(outputStream, song, nbsVersion);
 
-            outputStream.close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
+        writeCustomInstruments(outputStream, song);
+
+        outputStream.close();
     }
 
     private static void writeShort(@NotNull DataOutputStream stream, short num) throws IOException {

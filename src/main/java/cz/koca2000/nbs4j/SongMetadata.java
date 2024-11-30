@@ -34,7 +34,7 @@ public class SongMetadata {
      * Makes a copy of all metadata
      * @param metadata metadata to be copied
      */
-    SongMetadata(@NotNull SongMetadata metadata){
+    public SongMetadata(@NotNull SongMetadata metadata){
         title = metadata.title;
         author = metadata.author;
         originalAuthor = metadata.originalAuthor;
@@ -412,5 +412,4 @@ public class SongMetadata {
     public File getSourceFile() {
         return sourceFile;
     }
-
 }

@@ -1,15 +1,19 @@
 package cz.koca2000.nbs4j;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class Song {
 
-    private final List<Layer> layers;
+    private final @UnmodifiableView List<LayerInSong> layers;
 
     private final SongMetadata metadata;
     private final boolean isStereo;
@@ -25,8 +29,7 @@ public final class Song {
     private final TreeMap<Long, Float> tempoChanges;
     private final long lastTick;
 
-    private Song(@NotNull Builder builder, List<Layer> layers){
-        this.layers = layers;
+    private Song(@NotNull Builder builder){
         metadata = builder.metadata;
 
         isStereo = builder.isStereo;
@@ -36,6 +39,12 @@ public final class Song {
         nonEmptyTicks = builder.nonEmptyTicks;
         tempoChanges = builder.tempoChanges;
         lastTick = builder.lastTick;
+
+        List<LayerInSong> layersInSong = new ArrayList<>();
+        for (Layer layer : builder.layers) {
+            layersInSong.add(new LayerInSong(this, layer));
+        }
+        this.layers = Collections.unmodifiableList(layersInSong);
 
         songLengthInSeconds = songLength != 0 ? calculateTimeInSecondsAtTick(songLength) : 0;
     }
@@ -50,13 +59,13 @@ public final class Song {
     }
 
     /**
-     * Provides {@link Layer} with the specified index.
+     * Provides {@link LayerInSong} with the specified index.
      * @param index index of the layer to return
      * @throws IndexOutOfBoundsException if the index is out of range
-     * @return {@link Layer} with the specified index
+     * @return {@link LayerInSong} with the specified index
      */
     @NotNull
-    public Layer getLayer(int index){
+    public LayerInSong getLayer(int index){
         return layers.get(index);
     }
 
@@ -109,23 +118,25 @@ public final class Song {
 
     private double calculateTimeInSecondsAtTick(long tick){
         double length = 0;
-        long lastTick = 0;
+        long previousTick = 0;
         float lastTempo = getTempo(0);
-        for (Map.Entry<Long, Float> tempo : tempoChanges.entrySet()){
+        for (Map.Entry<Long, Float> tempo : tempoChanges.entrySet()) {
             long changeTick = tempo.getKey();
-            if (changeTick <= 0)
-                continue;
-            if (changeTick > tick)
+            if (changeTick < 0) {
+                changeTick = 0;
+            }
+            if (changeTick > tick) {
                 changeTick = tick;
+            }
 
-            length += (changeTick - lastTick) * (1f / lastTempo);
+            length += (changeTick - previousTick) * (1f / lastTempo);
             lastTempo = tempo.getValue();
-            lastTick = changeTick;
+            previousTick = changeTick;
 
             if (changeTick == tick)
                 break;
         }
-        length += (tick - lastTick) * (1f / lastTempo);
+        length += (tick - previousTick) * (1f / lastTempo);
         return length;
     }
 
@@ -148,7 +159,10 @@ public final class Song {
      * @return tempo in ticks per second
      */
     public float getTempo(long tick){
-        if (tempoChanges.size() == 0)
+        if (tick < 0) {
+            tick = 0;
+        }
+        if (tempoChanges.isEmpty())
             return 10;
         Map.Entry<Long, Float> floorEntry = tempoChanges.floorEntry(tick);
         return floorEntry != null ? floorEntry.getValue() : 10;
@@ -187,7 +201,7 @@ public final class Song {
      * @return unmodifiable {@link List} of layers
      */
     @NotNull
-    public List<Layer> getLayers(){
+    public List<LayerInSong> getLayers(){
         return layers;
     }
 
@@ -204,19 +218,30 @@ public final class Song {
      * Saves this song to the given stream using the given nbs version.
      * @param nbsVersion version of nbs data format
      * @param stream output stream the song will be written to
+     * @throws UncheckedIOException if any IO operation fails
      */
     public void save(@NotNull NBSVersion nbsVersion, @NotNull OutputStream stream){
-        NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), stream);
+        try {
+            NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), stream);
+        }
+        catch (IOException ex) {
+            throw new UncheckedIOException("There was an error during the saving operation", ex);
+        }
     }
 
     /**
      * Saves this song to the given file using the given nbs version.
      * @param nbsVersion version of nbs data format
      * @param file file the song will be written to
-     * @throws IOException if the file can not be written
+     * @throws UncheckedIOException if the file can not be written or any IO operation fails
      */
-    public void save(@NotNull NBSVersion nbsVersion, @NotNull File file) throws IOException{
-        NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), Files.newOutputStream(file.toPath()));
+    public void save(@NotNull NBSVersion nbsVersion, @NotNull File file) {
+        try {
+            NBSWriter.writeSong(this, nbsVersion.getVersionNumber(), Files.newOutputStream(file.toPath()));
+        }
+        catch (IOException ex) {
+            throw new UncheckedIOException("There was an error during the saving operation", ex);
+        }
     }
 
     /**
@@ -244,9 +269,42 @@ public final class Song {
         return NBSReader.readSong(stream);
     }
 
-    public static class Builder {
-        private final List<Layer.Builder> layerBuilders = new ArrayList<>();
-        private final SongMetadata metadata;
+    @NotNull
+    public static Builder builder() {
+        return builder(false);
+    }
+
+    @NotNull
+    public static Builder builder(boolean isStrict) {
+        return new Builder(isStrict);
+    }
+
+    @NotNull
+    public static Builder builder(@NotNull Song song) {
+        return builder(song, false);
+    }
+
+    @NotNull
+    public static Builder builder(@NotNull Song song, boolean isStrict) {
+        return new Builder(song, isStrict);
+    }
+
+    @NotNull
+    public static Builder builder(@NotNull Song song, @NotNull SongMetadata songMetadata) {
+        return builder(song, songMetadata, false);
+    }
+
+    @NotNull
+    public static Builder builder(@NotNull Song song, @NotNull SongMetadata songMetadata, boolean isStrict) {
+        return new Builder(song, songMetadata, isStrict);
+    }
+
+    public static final class Builder {
+        private final boolean isStrict;
+        private final InteractiveReplacer replacer = new InteractiveReplacer();
+
+        private final List<Layer> layers = new ArrayList<>();
+        private SongMetadata metadata;
 
         private boolean isStereo = false;
         private long songLength = 0;
@@ -260,16 +318,26 @@ public final class Song {
         private final TreeMap<Long, Float> tempoChanges = new TreeMap<>();
         private long lastTick = -1;
 
-        public Builder() {
-            metadata = new SongMetadata();
+        private Builder(boolean isStrict) {
+            this.isStrict = isStrict;
         }
 
         /**
          * Initialize the builder with data from the given song.
+         * If your {@link Song} uses a custom metadata class derived from {@link SongMetadata}, use {@link #Builder(Song, SongMetadata, boolean)}.
          * @param originalSong song to be copied
+         * @throws IllegalArgumentException if the song's metadata are derived class instead of {@link SongMetadata}
          */
-        public Builder(@NotNull Song originalSong) {
-            metadata = new SongMetadata(originalSong.metadata);
+        private Builder(@NotNull Song originalSong, boolean isStrict) {
+            this(originalSong, cloneMetadata(originalSong), isStrict);
+        }
+
+        private Builder(@NotNull Song originalSong, @NotNull SongMetadata songMetadata, boolean isStrict) {
+            this(isStrict);
+            if (originalSong.metadata == songMetadata) {
+                throw new IllegalArgumentException("Supplied SongMetadata are the same instance of SongMetadata as in the original song.");
+            }
+            metadata = songMetadata;
 
             isStereo = originalSong.isStereo;
             lastTick = originalSong.lastTick;
@@ -277,212 +345,233 @@ public final class Song {
             nonCustomInstrumentsCount = originalSong.nonCustomInstrumentsCount;
 
             for (CustomInstrument instrument : originalSong.customInstruments){
-                addCustomInstrument(instrument);
+                customInstrument(instrument);
             }
 
-            for (int i = 0; i < originalSong.getLayersCount(); i++){
-                addLayerCopy(originalSong.getLayer(i), l -> {});
+            for (LayerInSong layer : originalSong.getLayers()){
+                layers.add(layer.getLayerData());
             }
 
             for (Map.Entry<Long, Float> entry : originalSong.tempoChanges.entrySet()){
-                setTempoChange(entry.getKey(), entry.getValue());
+                tempoChange(entry.getKey(), entry.getValue());
             }
+        }
+
+        @NotNull
+        private static SongMetadata cloneMetadata(@NotNull Song originalSong) {
+            if (originalSong.metadata.getClass() != SongMetadata.class) {
+                throw new IllegalArgumentException("Song uses a custom SongMetadata class that cannot be cloned automatically.");
+            }
+            return new SongMetadata(originalSong.metadata);
+        }
+
+        /**
+         * Enables interactive way of replacing certain parts of the song for a single call.
+         * @return {@link InteractiveReplacer}
+         */
+        public InteractiveReplacer replace() {
+            return replacer;
         }
 
         /**
          * Adds the custom instrument to the end of the list with custom instruments of this song.
          * @param customInstrument {@link CustomInstrument} to be added.
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the layer is null
          * @return this instance of the {@link Builder}
          */
         @NotNull
-        public Song.Builder addCustomInstrument(@NotNull CustomInstrument customInstrument){
+        public Builder customInstrument(CustomInstrument customInstrument){
+            if (customInstrument == null) {
+                if (isStrict) {
+                    throw new IllegalArgumentException("Can not add null as a custom instrument");
+                }
+                return this;
+            }
             customInstruments.add(customInstrument);
             return this;
         }
 
         /**
-         * Adds a new layer to the song.
+         * Replaces the custom instrument at the given index or removes it if the given value is null.
+         * If the index equals the count of custom instruments added to the builder, it is the same as calling {@link #customInstrument(CustomInstrument)}.
+         * If you remove a custom instrument, indices of all subsequent custom instruments change which may cause issues with already added notes.
+         * @param index Zero-based index of the layer to be replaced
+         * @param customInstrument {@link CustomInstrument} to be set to the given index or null
+         * @throws IndexOutOfBoundsException if the {@link Builder} is not in strict mode and the index is greater than the count of custom instrument
+         *                                  or if the {@link Builder} is in strict mode and the index is out of bounds
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder addLayer(Consumer<Layer.Builder> layerBuilderCall){
-            Layer.Builder layerBuilder = new Layer.Builder();
-            layerBuilders.add(layerBuilder);
+        public Builder customInstrument(int index, @Nullable CustomInstrument customInstrument) {
+            return customInstrument(index, customInstrument, ItemChangeMode.SET);
+        }
 
-            layerBuilderCall.accept(layerBuilder);
+        /**
+         * Replaces the custom instrument at the given index or removes it if the given value is null.
+         * If the index equals the count of custom instruments added to the builder, it is the same as calling {@link #customInstrument(CustomInstrument)}.
+         * If you remove a custom instrument, indices of all subsequent custom instruments change which may cause issues with already added notes.
+         * @param index Zero-based index of the layer to be replaced
+         * @param customInstrument {@link CustomInstrument} to be set to the given index or null
+         * @param changeMode Type of requested change
+         * @throws IndexOutOfBoundsException if the {@link Builder} is not in strict mode and the index is greater than the count of custom instrument
+         *                                  or if the {@link Builder} is in strict mode and the index is out of bounds
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the custom instrument is null and the change mode is not {@link ItemChangeMode#SET}
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder customInstrument(int index, @Nullable CustomInstrument customInstrument, ItemChangeMode changeMode) {
+            genericItemChange(index, customInstrument, changeMode, customInstruments,
+                    () -> customInstrument(CustomInstrument.builder()
+                            .setName("block.note_block.harp")
+                            .setFileName("block.note_block.harp")
+                            .build()),
+                    c -> {},
+                    () -> {});
             return this;
         }
 
         /**
-         * Makes a copy of the given layer and adds it to the song.
-         * @param layer Layer to be added
-         * @param layerBuilderCall Consumer with {@link Layer.Builder} of the added {@link Layer}.
+         * Adds the given layer to the song.
+         * @param layer {@link Layer} to be added to the end of the list
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the layer is null
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder addLayerCopy(@NotNull Layer layer, @NotNull Consumer<Layer.Builder> layerBuilderCall){
-            Layer.Builder layerBuilder = new Layer.Builder(layer);
-            layerBuilders.add(layerBuilder);
+        public Builder layer(Layer layer){
+            if (layer == null) {
+                if (isStrict) {
+                    throw new IllegalArgumentException("Can not add null as a layer");
+                }
+                return this;
+            }
+            layers.add(layer);
+            updateSongStatisticData(layer);
+            return this;
+        }
 
-            for (Map.Entry<Long, Note.Builder> noteEntry : layerBuilder.getNotes().entrySet()){
-                onNoteAdded(noteEntry.getKey(), noteEntry.getValue());
+        /**
+         * Replaces the layer at the given index or removes it if the given value is null.
+         * If the index equals the count of layers, it is the same as calling {@link #layer(Layer)}.
+         * If you remove a layer, indices of all subsequent layers change.
+         * @param index Zero-based index of the layer to be replaced
+         * @param layer {@link Layer} to be set to the given index or null
+         * @throws IndexOutOfBoundsException if the {@link Builder} is in strict mode and the index is out of bounds
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder layer(int index, @Nullable Layer layer) {
+            return layer(index, layer, ItemChangeMode.SET);
+        }
+
+        /**
+         * Sets or inserts the layer at the given index. Operation is decided by the given {@link ItemChangeMode}.
+         * If the index equals the count of layers, it is the same as calling {@link #layer(Layer)}.
+         * If you remove a layer, indices of all subsequent layers change.
+         * @param index Zero-based index of the layer to be replaced or to which new layer should be inserted
+         * @param layer {@link Layer} to be set to the given index or null
+         * @param changeMode Type of requested change
+         * @throws IndexOutOfBoundsException if the {@link Builder} is in strict mode and the index is out of bounds
+         * @throws IllegalArgumentException if the {@link Builder} is in strict mode and the layer is null and the change mode is not {@link ItemChangeMode#SET}
+         * @return this instance of {@link Builder}
+         */
+        @NotNull
+        public Builder layer(int index, @Nullable Layer layer, ItemChangeMode changeMode) {
+            genericItemChange(index, layer, changeMode, layers,
+                    () -> layer(Layer.builder().name("Empty layer").build()),
+                    this::updateSongStatisticData,
+                    this::recalculateSongStatisticData);
+            return this;
+        }
+
+        private <T> void genericItemChange(int index, T item, ItemChangeMode changeMode, List<T> list, Runnable dummyItemCreator, Consumer<T> onAdd, Runnable onChange) {
+            if (index < 0) {
+                if (isStrict) {
+                    throw new IndexOutOfBoundsException("Index can not be lower than 0");
+                }
+                index = 0;
             }
 
-            layerBuilderCall.accept(layerBuilder);
-            return this;
-        }
-
-        /**
-         * Returns the {@link Layer.Builder} of the layer at the given index
-         * @param index Index of the layer
-         * @param layerBuilderCall Consumer with {@link Layer.Builder} of the specified Layer
-         * @return this instance of {@link Builder}
-         * @throws IndexOutOfBoundsException if the index is out of bounds
-         */
-        @NotNull
-        public Song.Builder getLayer(int index, @NotNull Consumer<Layer.Builder> layerBuilderCall) {
-            if (index < 0 || index > layerBuilders.size()) {
-                throw new IndexOutOfBoundsException("The index is out of bounds.");
+            if (item == null) {
+                genericItemRemove(index, changeMode, list, onChange);
+                return;
             }
 
-            layerBuilderCall.accept(layerBuilders.get(index));
-            return this;
-        }
+            if (index > list.size()) {
+                if (isStrict) {
+                    throw new IndexOutOfBoundsException();
+                }
 
-        /**
-         * Returns the {@link Layer.Builder} of the layer at the given index
-         * @param index Index of the layer
-         * @return {@link Layer.Builder} of the specified Layer
-         */
-        @NotNull
-        public Layer.Builder getLayer(int index) {
-            if (index < 0 || index > layerBuilders.size()) {
-                throw new IndexOutOfBoundsException("The index is out of bounds.");
+                while (index > list.size()) {
+                    dummyItemCreator.run();
+                }
             }
 
-            return layerBuilders.get(index);
-        }
-
-        /**
-         * Creates as many {@link Layer} as needed to have specified count of layers.
-         * @param count amount of layers the song should contain
-         * @throws IllegalArgumentException if specified count is lower than number of existing layers.
-         * @return this instance of {@link Builder}
-         */
-        @NotNull
-        public Song.Builder setLayersCount(int count){
-            if (count < layerBuilders.size())
-                throw new IllegalArgumentException("Layers can not be removed.");
-
-            for (int i = layerBuilders.size(); i < count; i++){
-                int index = i;
-                addLayer(l -> l.setName("Layer #" + index));
-            }
-
-            return this;
-        }
-
-        /**
-         * Adds the note to the song on specified tick and layer.
-         * If the tick is higher than song's length, song is prolonged.
-         * @param tick tick of the note
-         * @param layerIndex index of layer on which the song should be placed
-         * @param noteBuilderCall {@link Note.Builder} of the added note
-         * @throws IllegalArgumentException of tick is negative.
-         * @throws IndexOutOfBoundsException if layer index is negative.
-         * @return this instance of {@link Builder}
-         */
-        @NotNull
-        public Song.Builder addNoteToLayerAtTick(int layerIndex, long tick, @NotNull Consumer<Note.Builder> noteBuilderCall){
-            if (tick < 0)
-                throw new IllegalArgumentException("Tick can not be negative.");
-
-            Note.Builder noteBuilder = new Note.Builder();
-            noteBuilderCall.accept(noteBuilder);
-
-            addNoteToLayer(layerIndex, tick, noteBuilder);
-
-            return this;
-        }
-
-        /**
-         * Adds the copy of the note to the song on specified tick and layer.
-         * If the tick is higher than song's length, song is prolonged.
-         * @param tick tick of the note
-         * @param layerIndex index of layer on which the song should be placed
-         * @param note {@link Note} to be copied
-         * @param noteBuilderCall {@link Note.Builder} of the added note
-         * @throws IllegalArgumentException of tick is negative.
-         * @throws IndexOutOfBoundsException if layer index is negative.
-         * @return this instance of {@link Builder}
-         */
-        @NotNull
-        public Song.Builder addNoteCopyToLayerAtTick(int layerIndex, long tick, @NotNull Note note, @NotNull Consumer<Note.Builder> noteBuilderCall){
-            if (tick < 0)
-                throw new IllegalArgumentException("Tick can not be negative.");
-
-            Note.Builder noteBuilder = new Note.Builder(note);
-            noteBuilderCall.accept(noteBuilder);
-
-            addNoteToLayer(layerIndex, tick, noteBuilder);
-
-            return this;
-        }
-
-        private void addNoteToLayer(int layerIndex, long tick, @NotNull Note.Builder noteBuilder) {
-            if (layerIndex >= layerBuilders.size())
-                setLayersCount(layerIndex + 1);
-
-            Layer.Builder layer = layerBuilders.get(layerIndex);
-
-            layer.setNoteInternal(tick, noteBuilder);
-            onNoteAdded(tick, noteBuilder);
-        }
-
-        private void onNoteAdded(long tick, @NotNull Note.Builder note){
-            if (!note.isCustomInstrument())
-                increaseNonCustomInstrumentsCountTo(note.getInstrument() + 1);
-
-            nonEmptyTicks.add(tick);
-            if (lastTick < tick)
-                lastTick = tick;
-            if (songLength <= tick)
-                songLength = tick + 1;
-
-            if (note.getPanning() != Note.NEUTRAL_PANNING)
-                isStereo = true;
-        }
-
-        /**
-         * Removes note on specific tick and layer.
-         * @param tick tick on which is the note to be removed
-         * @param layerIndex index of layer of the note
-         * @return this instance of {@link Builder}
-         */
-        @NotNull
-        public Song.Builder removeNote(long tick, int layerIndex){
-            Layer.Builder layer = layerBuilders.get(layerIndex);
-            layer.removeNoteInternal(tick);
-
-            boolean otherNoteExists = false;
-            for (int i = 0; i < layerBuilders.size(); i++){
-                if (layer.getNote(tick) != null) {
-                    otherNoteExists = true;
+            switch (changeMode) {
+                case SET:
+                    list.set(index, item);
+                    onChange.run();
                     break;
-                }
+                case INSERT:
+                    list.add(index, item);
+                    onAdd.accept(item);
+                    break;
+                default:
+                    throw new IncompatibleClassChangeError("Unknown ItemChangeMode");
             }
-            otherNoteExists |= tempoChanges.containsKey(tick);
+        }
 
-            if (!otherNoteExists) {
-                nonEmptyTicks.remove(tick);
-                if (tick == lastTick){
-                    lastTick = nonEmptyTicks.isEmpty() ? -1 : nonEmptyTicks.last();
-                    if (tick == songLength - 1)
-                        songLength = lastTick + 1;
+        private <T> void genericItemRemove(int index, ItemChangeMode changeMode, List<T> list, Runnable onChange) {
+            if (index > list.size()) {
+                if (isStrict) {
+                    throw new IndexOutOfBoundsException("Index is out of bounds and null can not be added");
                 }
+                return;
             }
 
-            return this;
+            if (changeMode != ItemChangeMode.SET && isStrict) {
+                throw new IllegalArgumentException("Null can only be used with ItemChangeMode.SET");
+            }
+
+            list.remove(index);
+            onChange.run();
+        }
+
+        private void recalculateSongStatisticData() {
+            lastTick = -1;
+            songLength = 0;
+            isStereo = false;
+            nonCustomInstrumentsCount = 0;
+            nonEmptyTicks.clear();
+
+            for (Layer layer : layers) {
+                updateSongStatisticData(layer);
+            }
+
+            nonEmptyTicks.addAll(tempoChanges.keySet());
+        }
+
+        private void updateSongStatisticData(@NotNull Layer layer) {
+            for (Map.Entry<Long, Note> noteEntry : layer.getNotes().entrySet()) {
+                long tick = noteEntry.getKey();
+                Note note = noteEntry.getValue();
+
+                if (lastTick < tick) {
+                    lastTick = tick;
+                }
+
+                if (songLength <= tick) {
+                    songLength = tick + 1;
+                }
+
+                if (!note.isCustomInstrument() && nonCustomInstrumentsCount <= note.getInstrument()) {
+                    nonCustomInstrumentsCount = note.getInstrument() + 1;
+                }
+
+                isStereo |= note.getPanning() != Note.NEUTRAL_PANNING;
+                nonEmptyTicks.add(tick);
+            }
+
+            isStereo |= layer.getPanning() != Layer.NEUTRAL_PANNING;
         }
 
         /**
@@ -492,7 +581,7 @@ public final class Song {
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder setLength(long length){
+        public Builder length(long length){
             if (lastTick >= length) {
                 throw new IllegalArgumentException("Specified song length would not contain all notes or tempo changes.");
             }
@@ -502,90 +591,108 @@ public final class Song {
         }
 
         /**
-         * Specifies whether the song has notes or layers (notes or layers with panning).
-         * @return this instance of {@link Builder}
-         */
-        @NotNull
-        Song.Builder setStereo(){
-            isStereo = true;
-            return this;
-        }
-
-        @NotNull
-        Song.Builder increaseNonCustomInstrumentsCountTo(int count) {
-            if (nonCustomInstrumentsCount < count)
-                nonCustomInstrumentsCount = count;
-            return this;
-        }
-
-        /**
          * Specifies the change of tempo in ticks per seconds on specific tick.
          * @param firstTick tick since the specified tempo is used.
-         * @param tempo tempo in ticks per seconds to be used from this tick on
-         * @throws IllegalArgumentException if the tempo is not positive value
+         * @param tempo tempo in ticks per seconds to be used from this tick on or non-positive value if you want to remove existing change of tempo
          * @return this instance of {@link Builder}
          */
         @NotNull
-        public Song.Builder setTempoChange(long firstTick, float tempo){
-            if (tempo <= 0)
-                throw new IllegalArgumentException("Tempo has to be positive value.");
+        public Builder tempoChange(long firstTick, float tempo){
+            if (firstTick < 0) {
+                firstTick = 0;
+            }
 
-            if (firstTick >= 0)
-                nonEmptyTicks.add(firstTick);
+            if (tempo <= 0) {
+                tempoChanges.remove(firstTick);
+                recalculateSongStatisticData();
+                return this;
+            }
 
+            nonEmptyTicks.add(firstTick);
             tempoChanges.put(firstTick, tempo);
 
             return this;
         }
 
-        /**
-         * Provides {@link SongMetadata} of the Song
-         * @return {@link SongMetadata}
-         */
-        @NotNull
-        public SongMetadata getMetadata(){
-            return metadata;
-        }
-
-        /**
-         * Returns count of layers
-         * @return count of layers
-         */
-        public int getLayersCount(){
-            return layerBuilders.size();
+        public Builder metadata(SongMetadata metadata) {
+            this.metadata = metadata;
+            return this;
         }
 
         /**
          * Creates new instance of {@link Song} based on data from this builder.
          * @return {@link Song}
          */
+        @NotNull
         public Song build() {
-            List<Layer> layers = new ArrayList<>();
-            for (Layer.Builder layerBuilder : layerBuilders) {
-                Layer layer = layerBuilder.build();
-                layers.add(layer);
+            if (metadata == null) {
+                metadata = new SongMetadata();
+            }
+            return new Song(this);
+        }
 
-                if (layer.getPanning() != Layer.NEUTRAL_PANNING) {
-                    setStereo();
+        @FunctionalInterface
+        public interface Replacer<T, B> {
+            T replace(B builder, T originalNote);
+        }
+
+        public enum ItemChangeMode {
+            SET, INSERT
+        }
+
+        public class InteractiveReplacer {
+
+            private InteractiveReplacer() {
+            }
+
+            /**
+             * Replaces the layer at the given index by the result of {@link Replacer} callback.
+             * If the callback returns null, layer at the given index is removed and indices of all subsequent layers change.
+             * If the index equals the count of layers, layer is added.
+             * @param index Zero-based index of the layer to be replaced
+             * @param replacer {@link Replacer} that is given an existing layer at the given index or null if there is none
+             *                                         and a builder initialized with that layer or empty builder if there is none.
+             * @throws IndexOutOfBoundsException if the {@link Builder} is in strict mode and the index is out of bounds
+             * @return this instance of {@link Builder}
+             */
+            @NotNull
+            public Builder layer(int index, @NotNull Replacer<Layer, Layer.Builder> replacer) {
+                return generic(index, layers, replacer, l -> Layer.builder(l, isStrict), () -> Layer.builder(isStrict), l -> Builder.this.layer(index, l, ItemChangeMode.SET));
+            }
+
+            @NotNull
+            public Builder customInstrument(int index, Replacer<CustomInstrument, CustomInstrument.Builder> replacer) {
+                if (index > customInstruments.size()) {
+                    throw new IndexOutOfBoundsException("Index is out of bounds");
                 }
 
-                if (!isStereo) {
-                    for (Note note : layer.getNotes().values()) {
-                        if (note.getPanning() != Note.NEUTRAL_PANNING) {
-                            setStereo();
-                            break;
-                        }
+                return generic(index, customInstruments, replacer, c -> CustomInstrument.builder(c, isStrict), () -> CustomInstrument.builder(isStrict), c -> Builder.this.customInstrument(index, c, ItemChangeMode.SET));
+            }
+
+            private <T, B> Builder generic(int index, List<T> list, Replacer<T, B> replacer, Function<T, B> builderFactory, Supplier<B> emptyBuilderFactory, Consumer<T> applyMethod) {
+                if (index < 0) {
+                    if (isStrict) {
+                        throw new IndexOutOfBoundsException("Index can not be lower than 0");
                     }
+                    index = 0;
                 }
+
+                T originalLayer;
+                B builder;
+                if (index < list.size()) {
+                    originalLayer = list.get(index);
+                    builder = builderFactory.apply(originalLayer);
+                } else {
+                    originalLayer = null;
+                    builder = emptyBuilderFactory.get();
+                }
+
+                T modifiedLayer = replacer.replace(builder, originalLayer);
+
+                applyMethod.accept(modifiedLayer);
+
+                return Builder.this;
             }
-
-            Song song = new Song(this, layers);
-
-            for (Layer layer : layers) {
-                layer.setSong(song);
-            }
-
-            return song;
         }
     }
 }
