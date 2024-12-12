@@ -24,12 +24,13 @@ class NBSReader {
             HeaderData header = readHeader(song, dataInputStream);
 
             List<Layer.Builder> layers = initializeLayerBuilders(dataInputStream);
+            int layersCount = layers.size();
 
             readMetadata(song, header, dataInputStream);
 
             readNotes(header, layers, dataInputStream);
 
-            readLayers(header, layers, dataInputStream);
+            readLayers(header, layers, layersCount, dataInputStream);
 
             readCustomInstruments(song, dataInputStream);
 
@@ -149,7 +150,7 @@ class NBSReader {
 
         int instrumentId;
         boolean isCustomInstrument;
-        if (instrument >= header.firstCustomInstrumentIndex){
+        if (instrument >= header.firstCustomInstrumentIndex) {
             instrumentId = instrument - header.firstCustomInstrumentIndex;
             isCustomInstrument = true;
         } else {
@@ -171,6 +172,10 @@ class NBSReader {
             pitch = 0;
         }
 
+        if (layer >= layers.size()) {
+            layers.add(Layer.builder());
+        }
+
         layers.get(layer)
                 .note(tick, Note.builder()
                         .instrument(instrumentId, isCustomInstrument)
@@ -182,8 +187,9 @@ class NBSReader {
                 );
     }
 
-    private static void readLayers(@NotNull HeaderData header, @NotNull List<Layer.Builder> layers, @NotNull DataInputStream stream) throws IOException {
-        for (Layer.Builder layer : layers) {
+    private static void readLayers(@NotNull HeaderData header, @NotNull List<Layer.Builder> layers, int layersCount, @NotNull DataInputStream stream) throws IOException {
+        for (int i = 0; i < layersCount; i++) {
+            Layer.Builder layer = layers.get(i);
             layer.name(readString(stream));
             if (header.version >= 4) {
                 layer.locked(stream.readByte() == 1);
