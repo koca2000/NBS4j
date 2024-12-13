@@ -6,6 +6,8 @@ import java.util.Objects;
 
 public class CustomInstrument {
 
+    public static final String TEMPO_CHANGER_INSTRUMENT_NAME = "Tempo Changer";
+
     private final String name;
     private final String fileName;
     private final int key;

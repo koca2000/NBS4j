@@ -12,6 +12,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class Song {
+    public static final float DEFAULT_TEMPO = 10;
+    public static final long INITIAL_TEMPO_TICK = -1;
 
     private final @UnmodifiableView List<LayerInSong> layers;
 
@@ -35,9 +37,9 @@ public final class Song {
         isStereo = builder.isStereo;
         songLength = builder.songLength;
         nonCustomInstrumentsCount = builder.nonCustomInstrumentsCount;
-        customInstruments = Collections.unmodifiableList(builder.customInstruments);
-        nonEmptyTicks = builder.nonEmptyTicks;
-        tempoChanges = builder.tempoChanges;
+        customInstruments = Collections.unmodifiableList(new ArrayList<>(builder.customInstruments));
+        nonEmptyTicks = new TreeSet<>(builder.nonEmptyTicks);
+        tempoChanges = new TreeMap<>(builder.tempoChanges);
         lastTick = builder.lastTick;
 
         List<LayerInSong> layersInSong = new ArrayList<>();
@@ -159,13 +161,14 @@ public final class Song {
      * @return tempo in ticks per second
      */
     public float getTempo(long tick){
-        if (tick < 0) {
-            tick = 0;
+        if (tick < INITIAL_TEMPO_TICK) {
+            tick = INITIAL_TEMPO_TICK;
         }
-        if (tempoChanges.isEmpty())
-            return 10;
+        if (tempoChanges.isEmpty()) {
+            return DEFAULT_TEMPO;
+        }
         Map.Entry<Long, Float> floorEntry = tempoChanges.floorEntry(tick);
-        return floorEntry != null ? floorEntry.getValue() : 10;
+        return floorEntry != null ? floorEntry.getValue() : DEFAULT_TEMPO;
     }
 
     /**
@@ -212,6 +215,12 @@ public final class Song {
     @NotNull
     public List<CustomInstrument> getCustomInstruments(){
         return customInstruments;
+    }
+
+    @NotNull
+    @UnmodifiableView
+    public Map<Long, Float> getTempoChanges() {
+        return Collections.unmodifiableMap(tempoChanges);
     }
 
     /**
@@ -349,7 +358,7 @@ public final class Song {
             }
 
             for (LayerInSong layer : originalSong.getLayers()){
-                layers.add(layer.getLayerData());
+                layer(layer.getLayerData());
             }
 
             for (Map.Entry<Long, Float> entry : originalSong.tempoChanges.entrySet()){
@@ -572,6 +581,24 @@ public final class Song {
             }
 
             isStereo |= layer.getPanning() != Layer.NEUTRAL_PANNING;
+
+            updateTempoChangeSongLength();
+        }
+
+        private void updateTempoChangeSongLength() {
+            if (tempoChanges.isEmpty()) {
+                return;
+            }
+
+            long lastTempoChangeTick = tempoChanges.lastKey();
+
+            if (lastTick <= lastTempoChangeTick) {
+                lastTick = lastTempoChangeTick;
+            }
+
+            if (songLength <= lastTempoChangeTick) {
+                songLength = lastTempoChangeTick + 1;
+            }
         }
 
         /**
@@ -590,6 +617,15 @@ public final class Song {
             return this;
         }
 
+        public Builder initialTempo(float tempo) {
+            if (tempo <= 0) {
+                tempo = DEFAULT_TEMPO;
+            }
+
+            tempoChanges.put(INITIAL_TEMPO_TICK, tempo);
+            return this;
+        }
+
         /**
          * Specifies the change of tempo in ticks per seconds on specific tick.
          * @param firstTick tick since the specified tempo is used.
@@ -598,8 +634,9 @@ public final class Song {
          */
         @NotNull
         public Builder tempoChange(long firstTick, float tempo){
-            if (firstTick < 0) {
-                firstTick = 0;
+            if (firstTick <= INITIAL_TEMPO_TICK) {
+                initialTempo(tempo);
+                return this;
             }
 
             if (tempo <= 0) {
@@ -610,6 +647,8 @@ public final class Song {
 
             nonEmptyTicks.add(firstTick);
             tempoChanges.put(firstTick, tempo);
+
+            updateTempoChangeSongLength();
 
             return this;
         }

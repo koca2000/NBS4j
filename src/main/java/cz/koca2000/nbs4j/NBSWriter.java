@@ -1,6 +1,7 @@
 package cz.koca2000.nbs4j;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -15,17 +16,19 @@ class NBSWriter {
         DataOutputStream outputStream = new DataOutputStream(stream);
 
         int instrumentsCount = roundInstrumentCountToMinecraftVanillaCount(song.getNonCustomInstrumentsCount());
+        boolean isTempoChangerNeeded = isTempoChangerNeeded(song);
+
         writeHeader(outputStream, song, nbsVersion, instrumentsCount);
 
-        writeShort(outputStream, (short) song.getLayersCount()); // song height
+        writeShort(outputStream, (short) (song.getLayersCount() + (isTempoChangerNeeded ? 1 : 0))); // song height
 
         writeMetadata(outputStream, song, nbsVersion);
 
         writeNotes(outputStream, song, nbsVersion, instrumentsCount);
 
-        writeLayers(outputStream, song, nbsVersion);
+        writeLayers(outputStream, song, nbsVersion, isTempoChangerNeeded);
 
-        writeCustomInstruments(outputStream, song);
+        writeCustomInstruments(outputStream, song, isTempoChangerNeeded);
 
         outputStream.close();
     }
@@ -71,7 +74,7 @@ class NBSWriter {
         writeString(stream, metadata.getOriginalAuthor());
         writeString(stream, metadata.getDescription());
 
-        writeShort(stream, (short) Math.round(song.getTempo(0) * 100));
+        writeShort(stream, (short) Math.round(song.getTempo(Song.INITIAL_TEMPO_TICK) * 100));
         stream.writeBoolean(metadata.isAutoSave());
         stream.writeByte(metadata.getAutoSaveDuration());
         stream.writeByte(metadata.getTimeSignature()); //x/4ths
@@ -98,25 +101,21 @@ class NBSWriter {
             writeShort(stream, (short)(tick - lastTick)); //jump ticks
 
             int lastLayerIndex = -1;
-            for (int layerIndex = 0; layerIndex < song.getLayersCount(); layerIndex++) {
-                Note note = song.getLayer(layerIndex).getNote(tick);
-                if (note == null)
+            for (int layerIndex = 0; layerIndex < song.getLayersCount() + 1; layerIndex++) {
+                Note note = null;
+                if (layerIndex < song.getLayersCount()) {
+                    note = song.getLayer(layerIndex).getNote(tick);
+                } else if (nbsVersion >= NBSVersion.V4.getVersionNumber()) {
+                    note = getTempoChangerNote(song, tick);
+                }
+
+                if (note == null) {
                     continue;
+                }
 
                 writeShort(stream, (short)(layerIndex - lastLayerIndex)); //jump layers
 
-                if (note.isCustomInstrument())
-                    stream.writeByte(instrumentsCount + note.getInstrument());
-                else
-                    stream.writeByte(note.getInstrument());
-
-                stream.writeByte(note.getKey());
-
-                if (nbsVersion >= 4){
-                    stream.writeByte(note.getVolume());
-                    stream.writeByte(100 - note.getPanning()); // 0 is right in nbs format
-                    writeShort(stream, (short) note.getPitch());
-                }
+                writeNote(stream, note, nbsVersion, instrumentsCount);
 
                 lastLayerIndex = layerIndex;
             }
@@ -128,32 +127,91 @@ class NBSWriter {
         writeShort(stream, (short) 0); //end of ticks
     }
 
-    private static void writeLayers(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion) throws IOException {
-        for (int i = 0; i < song.getLayersCount(); i++) {
-            Layer layer = song.getLayer(i);
+    @Nullable
+    private static Note getTempoChangerNote(@NotNull Song song, long tick) {
+        Float tempoChange = song.getTempoChanges().get(tick);
+        if (tempoChange == null) {
+            return null;
+        }
+        int tempoChangerInstrumentIndex = SongUtils.findTempoChangerInstrumentIndex(song.getCustomInstruments());
+        if (tempoChangerInstrumentIndex == -1) {
+            tempoChangerInstrumentIndex = song.getCustomInstrumentsCount();
+        }
 
-            writeString(stream, layer.getName());
+        return Note.builder()
+                .instrument(tempoChangerInstrumentIndex, true)
+                .pitch(Math.round(tempoChange * 15))
+                .build();
+    }
 
-            if (nbsVersion >= 4)
-                stream.writeBoolean(layer.isLocked());
+    private static void writeNote(@NotNull DataOutputStream stream, @NotNull Note note, int nbsVersion, int instrumentsCount) throws IOException {
+        if (note.isCustomInstrument())
+            stream.writeByte(instrumentsCount + note.getInstrument());
+        else
+            stream.writeByte(note.getInstrument());
 
-            stream.writeByte(layer.getVolume());
+        stream.writeByte(note.getKey());
 
-            if (nbsVersion >= 2)
-                stream.writeByte(100 - layer.getPanning()); // 0 is right in nbs format
+        if (nbsVersion >= 4){
+            stream.writeByte(note.getVolume());
+            stream.writeByte(100 - note.getPanning()); // 0 is right in nbs format
+            writeShort(stream, (short) note.getPitch());
         }
     }
 
-    private static void writeCustomInstruments(@NotNull DataOutputStream stream, @NotNull Song song) throws IOException {
-        stream.writeByte(song.getCustomInstrumentsCount()); //custom instruments count
+    private static void writeLayers(@NotNull DataOutputStream stream, @NotNull Song song, int nbsVersion, boolean addTempoChangerLayer) throws IOException {
+        for (int i = 0; i < song.getLayersCount(); i++) {
+            Layer layer = song.getLayer(i);
+
+            writeLayer(stream, layer, nbsVersion);
+        }
+
+        if (addTempoChangerLayer) {
+            writeLayer(stream,
+                    Layer.builder()
+                            .name(CustomInstrument.TEMPO_CHANGER_INSTRUMENT_NAME)
+                            .build(),
+                    nbsVersion
+            );
+        }
+    }
+
+    private static void writeLayer(@NotNull DataOutputStream stream, @NotNull Layer layer, int nbsVersion) throws IOException {
+        writeString(stream, layer.getName());
+
+        if (nbsVersion >= 4)
+            stream.writeBoolean(layer.isLocked());
+
+        stream.writeByte(layer.getVolume());
+
+        if (nbsVersion >= 2)
+            stream.writeByte(100 - layer.getPanning()); // 0 is right in nbs format
+    }
+
+    private static void writeCustomInstruments(@NotNull DataOutputStream stream, @NotNull Song song, boolean isTempoChangerNeeded) throws IOException {
+        boolean addTempoChanger = isTempoChangerNeeded && SongUtils.findTempoChangerInstrumentIndex(song.getCustomInstruments()) == -1;
+
+        stream.writeByte(song.getCustomInstrumentsCount() + (addTempoChanger ? 1 : 0)); //custom instruments count
 
         for (int i = 0; i < song.getCustomInstrumentsCount(); i++) {
             CustomInstrument customInstrument = song.getCustomInstrument(i);
-            writeString(stream, customInstrument.getName());
-            writeString(stream, customInstrument.getFileName());
-            stream.writeByte(customInstrument.getKey());
-            stream.writeBoolean(customInstrument.shouldPressKey());
+            writeCustomInstrument(stream, customInstrument);
         }
+
+        if (addTempoChanger) {
+            writeCustomInstrument(stream,
+                    CustomInstrument.builder()
+                            .setName(CustomInstrument.TEMPO_CHANGER_INSTRUMENT_NAME)
+                            .build()
+            );
+        }
+    }
+
+    private static void writeCustomInstrument(@NotNull DataOutputStream stream, @NotNull CustomInstrument customInstrument) throws IOException {
+        writeString(stream, customInstrument.getName());
+        writeString(stream, customInstrument.getFileName());
+        stream.writeByte(customInstrument.getKey());
+        stream.writeBoolean(customInstrument.shouldPressKey());
     }
 
     /**
@@ -172,5 +230,9 @@ class NBSWriter {
 
         // Minecraft 1.14+ or unknown+
         return Math.max(16, count);
+    }
+
+    private static boolean isTempoChangerNeeded(@NotNull Song song) {
+        return song.getTempoChanges().size() > 1 || (song.getTempoChanges().size() == 1 && !song.getTempoChanges().containsKey(Song.INITIAL_TEMPO_TICK));
     }
 }

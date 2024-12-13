@@ -1,5 +1,7 @@
 package cz.koca2000.nbs4j;
 
+import org.jetbrains.annotations.NotNull;
+
 public enum NBSVersion {
     /**
      * Doesn't support following features:
@@ -26,16 +28,14 @@ public enum NBSVersion {
     /**
      * <p>Adds following features: loop metadata, layer lock, note volume, note panning, note pitch
      *
-     * <p>Doesn't support following features:
-     * tempo change
+     * <p>Limited support of following features: tempo change (using custom instrument)
      */
     V4(4),
 
     /**
      * <p>Only some constraints of OpenNoteBlockStudio were changed. No changes in structure.
      *
-     * <p>Doesn't support following features:
-     * tempo change
+     * <p>Limited support of following features: tempo change (using custom instrument)
      */
     V5(5),
 
@@ -52,5 +52,17 @@ public enum NBSVersion {
 
     int getVersionNumber() {
         return versionNumber;
+    }
+
+    public boolean isNewerOrEqual(@NotNull NBSVersion other) {
+        return getVersionNumber() >= other.getVersionNumber();
+    }
+
+    public boolean isOlderOrEqual(@NotNull NBSVersion other) {
+        return getVersionNumber() <= other.getVersionNumber();
+    }
+
+    public boolean isEqual(@NotNull NBSVersion other) {
+        return getVersionNumber() == other.getVersionNumber();
     }
 }

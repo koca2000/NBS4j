@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 class NBSReader {
 
@@ -23,18 +24,27 @@ class NBSReader {
 
             HeaderData header = readHeader(song, dataInputStream);
 
-            List<Layer.Builder> layers = initializeLayerBuilders(dataInputStream);
-            int layersCount = layers.size();
+            List<Layer.Builder> layerBuilders = initializeLayerBuilders(dataInputStream);
+            int layersCount = layerBuilders.size();
 
             readMetadata(song, header, dataInputStream);
 
-            readNotes(header, layers, dataInputStream);
+            readNotes(header, layerBuilders, dataInputStream);
 
-            readLayers(header, layers, layersCount, dataInputStream);
+            readLayers(header, layerBuilders, layersCount, dataInputStream);
 
-            readCustomInstruments(song, dataInputStream);
+            List<CustomInstrument> customInstruments = readCustomInstruments(dataInputStream);
 
-            buildLayers(song, layers);
+            List<Layer> layers = buildLayers(layerBuilders);
+
+            int tempoChangerIndex = SongUtils.findTempoChangerInstrumentIndex(customInstruments);
+            if (tempoChangerIndex != -1) {
+                handleTempoChangerNotes(song, layers, tempoChangerIndex);
+            }
+
+            addCustomInstrumentsToSong(song, customInstruments);
+            addLayersToSong(song, layers);
+
         } catch (Exception e) {
             throw new SongCorruptedException(e);
         }
@@ -104,7 +114,7 @@ class NBSReader {
                 .setAuthor(readString(stream))
                 .setOriginalAuthor(readString(stream))
                 .setDescription(readString(stream));
-        song.tempoChange(0,readShort(stream) / 100f);
+        song.initialTempo(readShort(stream) / 100f);
         metadata.setAutoSave(stream.readBoolean())
                 .setAutoSaveDuration(stream.readByte())
                 .setTimeSignature(stream.readByte())
@@ -202,22 +212,70 @@ class NBSReader {
         }
     }
 
-    private static void readCustomInstruments(@NotNull Song.Builder song, @NotNull DataInputStream stream) throws IOException {
+    private static List<CustomInstrument> readCustomInstruments(@NotNull DataInputStream stream) throws IOException {
+        List<CustomInstrument> customInstruments = new ArrayList<>();
+
         byte customInstrumentCount = stream.readByte();
 
         for (int index = 0; index < customInstrumentCount; index++) {
-            song.customInstrument(CustomInstrument.builder()
+            customInstruments.add(CustomInstrument.builder()
                     .setName(readString(stream))
                     .setFileName(readString(stream))
                     .setKey(stream.readByte())
                     .setShouldPressKey(stream.readBoolean())
                     .build());
         }
+        return customInstruments;
     }
 
-    private static void buildLayers(@NotNull Song.Builder song, @NotNull List<Layer.Builder> layers) {
+    @NotNull
+    private static List<Layer> buildLayers(@NotNull List<Layer.Builder> layers) {
+        List<Layer> builtLayers = new ArrayList<>();
         for (Layer.Builder layerBuilder : layers) {
-            song.layer(layerBuilder.build());
+            builtLayers.add(layerBuilder.build());
+        }
+        return builtLayers;
+    }
+
+    private static void handleTempoChangerNotes(@NotNull Song.Builder song, @NotNull List<Layer> layers, int instrumentIndex) {
+        for (int i = 0; i < layers.size(); i++) {
+            Layer layer = layers.get(i);
+            Layer processedLayer = handleTempoChangeNotesInLayer(song, layer, instrumentIndex);
+            if (layer != processedLayer) {
+                layers.set(i, processedLayer);
+            }
+        }
+    }
+
+    private static Layer handleTempoChangeNotesInLayer(@NotNull Song.Builder song, @NotNull Layer layer, int instrumentIndex) {
+        Layer.Builder modifiedLayer = null;
+        for (Map.Entry<Long, Note> noteEntry : layer.getNotes().entrySet()) {
+            long tick = noteEntry.getKey();
+            Note note = noteEntry.getValue();
+
+            if (note.isCustomInstrument() && note.getInstrument() == instrumentIndex) {
+                if (modifiedLayer == null) {
+                    modifiedLayer = Layer.builder(layer);
+                }
+                modifiedLayer.note(tick, null);
+                song.tempoChange(tick, Math.abs(note.getPitch()) / 15f);
+            }
+        }
+        return modifiedLayer != null ? modifiedLayer.build() : layer;
+    }
+
+    private static void addCustomInstrumentsToSong(@NotNull Song.Builder song, @NotNull List<CustomInstrument> customInstruments) {
+        for (CustomInstrument customInstrument : customInstruments) {
+            song.customInstrument(customInstrument);
+        }
+    }
+
+    private static void addLayersToSong(@NotNull Song.Builder song, @NotNull List<Layer> layers) {
+        for (Layer layer : layers) {
+            if (CustomInstrument.TEMPO_CHANGER_INSTRUMENT_NAME.equals(layer.getName()) && layer.getNotes().isEmpty()) {
+                continue;
+            }
+            song.layer(layer);
         }
     }
 
