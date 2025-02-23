@@ -266,9 +266,11 @@ public class SongMetadata {
     /**
      * Sets the source file of this song
      * @param sourceFile File from which the song was loaded
+     * @return this instance of {@link SongMetadata}
      */
-    public void setSourceFile(@Nullable File sourceFile) {
+    public SongMetadata setSourceFile(@Nullable File sourceFile) {
         this.sourceFile = sourceFile;
+        return this;
     }
 
     /**
